@@ -6,7 +6,6 @@ import os
 
 class DrawConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        print(self.scope['user'])
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'draw_' + self.room_name
         await self.channel_layer.group_add(
