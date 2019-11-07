@@ -1,0 +1,20 @@
+{% extends 'base/base.html' %}
+
+{% load staticfiles %}
+
+{% block title %}Rooms{% endblock %}
+
+{% block head_extend %}
+
+{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <input id="room-input" type="text"/>
+    <button id="room-submit">Go</button>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/draw/rooms.js' %}" type="text/javascript"></script>
+{% endblock %}
