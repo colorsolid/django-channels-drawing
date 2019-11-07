@@ -1,0 +1,21 @@
+body {
+  background-color: #0c0c0c;
+  color: #dcdcdc;
+}
+
+#board {
+  z-index: 5;
+  position: absolute;
+  width: 1500px;
+  height: 900px;
+  left: 0px;
+  top : 0px;
+}
+
+#board-remote {
+  z-index: 1;
+  position: absolute;
+  background-color: #dcdcdc;
+  left: 0px;
+  top: 0px;
+}
