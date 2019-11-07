@@ -1,1 +1,1 @@
-web: gunicorn foli.wsgi
+web: gunicorn foli.wsgi --log-file
