@@ -10,8 +10,25 @@
 
 {% block content %}
   <div class="container-fluid">
-    <input id="room-input" type="text"/>
-    <button id="room-submit">Go</button>
+    <div class="row">
+      <div class="col-sm-4"></div>
+      <div class="col-sm-4">
+        <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon3">Enter a room to draw</span>
+          </div>
+          <input type="text" class="form-control" id="room-input" aria-describedby="basic-addon3">
+        </div>
+      </div>
+      <div class="col-sm-4"></div>
+    </div>
+    <div class="row">
+      <div class="col-sm-4"></div>
+      <div class="col-sm-4">
+        <button id="room-submit" class="btn btn-block btn-primary">Go</button>
+      </div>
+      <div class="col-sm-4"></div>
+    </div>
   </div>
 {% endblock %}
 
