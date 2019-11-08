@@ -1,1 +1,1 @@
-web: daphne django_channels_heroku.asgi:application --port $PORT --bind 0.0.0.0
+web: daphne foli.asgi:application --port $PORT --bind 0.0.0.0
