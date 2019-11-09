@@ -50,8 +50,8 @@ const main_y_move_limit = 30;
 const letter_x_move_limit = 4;
 const letter_y_move_limit = 3;
 
-let letter_x_move = 1;
-let letter_y_move = 1;
+let letter_x_move = 0;
+let letter_y_move = 0;
 
 document.onmousemove = function(event) {
   let x_diff = event.clientX - (window.innerWidth / 2);

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import django_heroku
+from decouple import config
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -21,12 +22,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'ljt=-%gd64s54dxn@31=ew76+_lkgv4tjoi*68p*c1o6s6-9eg'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134']#, '73.25.249.241']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134']
 
 
 # Application definition
@@ -93,8 +94,12 @@ CHANNEL_LAYERS = {
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'folibase',
+        'USER': 'djengus',
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
 
