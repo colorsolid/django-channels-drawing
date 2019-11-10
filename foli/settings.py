@@ -21,14 +21,20 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
+
+def env(var_name):
+    try:
+        var = os.environ[var_name]
+    except KeyError:
+        var = config(var_name)
+    return var
+
 # SECURITY WARNING: keep the secret key used in production secret!
-try:
-    SECRET_KEY = os.environ['SECRET_KEY']
-except KeyError:
-    SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+
+DEBUG = (env('DEBUG') == 'True')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134']
 
@@ -95,10 +101,7 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-try:
-    DB_PASSWORD = os.environ['DB_PASSWORD']
-except KeyError:
-    DB_PASSWORD = config('DB_PASSWORD')
+DB_PASSWORD = env('DB_PASSWORD')
 
 DATABASES = {
     'default': {

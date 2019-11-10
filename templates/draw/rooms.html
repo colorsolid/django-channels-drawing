@@ -1,37 +1,37 @@
-{% extends 'base/base.html' %}
+{% extends 'home/labs.html' %}
 
 {% load staticfiles %}
 
-{% block title %}Rooms{% endblock %}
+{% block title %} > Drawing Rooms{% endblock %}
 
-{% block head_extend %}
-
-{% endblock %}
-
-{% block content %}
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-sm-4"></div>
-      <div class="col-sm-4">
-        <div class="input-group mb-3">
-          <div class="input-group-prepend">
-            <span class="input-group-text" id="basic-addon3">Enter a room to draw</span>
-          </div>
-          <input type="text" class="form-control" id="room-input" aria-describedby="basic-addon3">
+{% block content_labs %}
+  <script type="text/javascript">
+    let letters = [
+      {letter: 'd', x: 50, y: 55},
+      {letter: 'r', x: 83, y: 55},
+      {letter: 'a', x: 108, y: 55},
+      {letter: 'w', x: 140, y: 55},
+    ];
+  </script>
+  <div class="row">
+    <div class="col-xl-4 col-sm-0"></div>
+    <div class="col-xl-4 col-sm-12">
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text" id="basic-addon3">Enter a room name to draw in</span>
         </div>
+        <input type="text" class="form-control" id="room-input" aria-describedby="basic-addon3" value="bang">
       </div>
-      <div class="col-sm-4"></div>
     </div>
-    <div class="row">
-      <div class="col-sm-4"></div>
-      <div class="col-sm-4">
-        <button id="room-submit" class="btn btn-block btn-primary">Go</button>
-      </div>
-      <div class="col-sm-4"></div>
-    </div>
+    <div class="col-xl-4 col-sm-0"></div>
   </div>
-{% endblock %}
-
-{% block scripts %}
+  <div class="row">
+    <div class="col-xl-4 col-sm-0"></div>
+    <div class="col-xl-4 col-sm-12">
+      <button id="room-submit" class="btn btn-block btn-primary">Go</button>
+    </div>
+    <div class="col-sm-4 col-sm-0"></div>
+  </div>
+  {% load static %}
   <script src="{% static 'js/draw/rooms.js' %}" type="text/javascript"></script>
 {% endblock %}

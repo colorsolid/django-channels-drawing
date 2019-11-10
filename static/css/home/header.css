@@ -1,11 +1,22 @@
+body {
+  overflow-x: hidden;
+  background-color: #0c0c0c;
+}
+
 .letter {
   font-family: sans-serif;
   font-weight: bold;
-  font-size: 60px;
+  font-size: 40px;
 }
 
 .black {
   fill: #0c0c0c;
+}
+
+.white {
+  fill-rule: nonzero;
+  fill: #dcdcdc;
+  fill-opacity: 0.5;
 }
 
 .grey {

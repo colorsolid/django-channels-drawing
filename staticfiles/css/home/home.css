@@ -1,3 +1,7 @@
+html, body {
+  overflow-x: hidden;
+}
+
 .letter {
   font-family: sans-serif;
   font-weight: bold;
@@ -6,6 +10,10 @@
 
 .black {
   fill: #0c0c0c;
+}
+
+.white {
+  fill: #dcdcdc;
 }
 
 .grey {
