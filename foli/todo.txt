@@ -1,0 +1,5 @@
+Lobby
+  Show all previously created DrawingBoards on lobby screen
+  Create new DrawingBoard
+Drawing
+  Load all previous drawings into separate contexts

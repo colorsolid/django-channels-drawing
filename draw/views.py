@@ -6,10 +6,11 @@ import json
 
 def index(request):
     context = {}
-    return render(request, 'draw/rooms.html', context)
+    return render(request, 'draw/lobby.html', context)
 
 
 def room(request, room_name):
+    print('request', request.__dict__, '\n')
     return render(request, 'draw/draw.html', {
         'room_name_json': mark_safe(json.dumps(room_name))
     })

@@ -9,29 +9,25 @@ for (let letter of letters) {
 }
 
 let elems = box_header.getElementsByTagName('text');
-console.log('elems', elems);
 for (let i = 0; i < elems.length; i++) {
   letters[i].elem = elems[i];
-  console.log(letters[i].elem)
 }
 
-console.log('letters', letters);
 
 let counted = 0;
 for (let i = 0; i < elems; i++) {
   let node = box_header.childNodes[i];
-  console.log(typeof node);
 
   if (node.innerHTML !== undefined) {
-    console.log(letters, counted)
     letters[counted].elem = node;
     counted++;
   }
 }
 
-let circle = logo.querySelector('circle');
-letters.push({x: parseInt(circle.getAttribute('cx')), y: parseInt(circle.getAttribute('cy')), elem: circle});
-console.log(circle);
+let circles = logo.querySelectorAll('circle');
+circles.forEach(circle => {
+  letters.push({x: parseInt(circle.getAttribute('cx')), y: parseInt(circle.getAttribute('cy')), elem: circle});
+});
 
 const logo_x_move_mult = 50;
 const logo_y_move_mult = 30;
@@ -53,8 +49,6 @@ function update_values() {
 
   logo_y_range = calc_move(window.innerHeight, 'innerHeight', win_y_half, logo_y_move_mult)[1] * -2;
 
-  console.log(logo_y_range);
-
   main.style.paddingTop = (logo.offsetHeight / 4) + 'px';
   logo.style.marginTop = (logo_y_range / 2) + 'px';
   logo.style.marginBottom = logo_y_range + 'px';
@@ -62,7 +56,6 @@ function update_values() {
   let logo_rect = logo.getBoundingClientRect();
   logo_x_init = logo_rect.left + (logo.offsetWidth / 2);
   logo_y_init = logo_rect.top + (logo.offsetHeight / 2);
-  console.log(logo_y_init);
 }
 
 update_values();
@@ -91,7 +84,7 @@ document.onmousemove = function(event) {
 
   let letter_y_factor = calc_move(event.clientY, 'innerHeight', logo_y_init, letter_y_move_mult)[0];
   let letter_factor = Math.abs(x_factor) > Math.abs(letter_y_factor) ? x_factor : letter_y_factor;
-  timer_mult = Math.ceil(timer_mult_base - (Math.abs(letter_factor) * timer_mult_base)) + timer_mult_base;
+  timer_mult = Math.ceil(timer_mult_base - (Math.abs(letter_factor) * timer_mult_base) + (timer_mult_base * 2));
   if (timer_mult === 0) timer_mult = 1;
   //console.log(letter_y_factor);
 

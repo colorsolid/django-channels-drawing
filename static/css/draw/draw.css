@@ -15,7 +15,16 @@ body {
 #board-remote {
   z-index: 1;
   position: absolute;
-  background-color: #dcdcdc;
+  background-color: #fff;
   left: 0px;
   top: 0px;
+}
+
+#board-wrapper {
+  width: 1500px;
+  height: 900px;
+}
+
+#functions-bar {
+  z-index: 20;
 }
