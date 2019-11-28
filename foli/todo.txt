@@ -1,5 +1,21 @@
-Lobby
-  Show all previously created DrawingBoards on lobby screen
-  Create new DrawingBoard
-Drawing
-  Load all previous drawings into separate contexts
+Labs
+  Automatically generate header
+  Soundcloud clone?
+  Drawing
+    Users via hash (show full hash id to user)
+    Users via registration
+    ** Save users drawing segments
+    ** Load all previous drawings into separate contexts
+    Lobby
+      Display number of users in each room
+      Correct form validation
+      * Show all previously created DrawingBoards on lobby screen
+    Room
+      Draw dots
+      Draw shapes
+      Fill?
+      * Undo/redo
+      * Clear
+      * Hide/show user's drawings
+      * Group users by group name
+      * Hide/show groups's drawings

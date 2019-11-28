@@ -1,7 +1,5 @@
 window.scrollTo(0, 0);
 
-const loc = window.location;
-
 const main = document.getElementById('main');
 const board = document.getElementById('board');
 const board_remote = document.getElementById('board-remote');
@@ -11,9 +9,7 @@ const functions_bar = document.getElementById('functions-bar');
 
 const color_btns = functions_bar.querySelectorAll('.btn-color');
 
-var connection_id;
-
-//const connection_id = Math.random().toString(36).substr(2);
+//const user_id = Math.random().toString(36).substr(2);
 
 var ctx = board.getContext('2d');
 ctx.save();
@@ -51,14 +47,23 @@ window.onresize = function() {
 var stroke_arr = [];
 var stroke = [];
 var stroke_chunk = [];
+
+// mouse coordinates within the visible drawing area
 var x = -1;
 var y = -1;
+
+// grab coordinates within the visible drawing area when moving the drawing board
 var x_grab = x;
 var y_grab = y;
+
+// difference between current mouse coordinates and grab coordinates
 var x_diff = 0;
 var y_diff = 0;
+
+// scroll position
 var x_offset = 0;
 var y_offset = 0;
+
 var clicked = false;
 var line_draw = false;
 
@@ -87,7 +92,6 @@ function input_move(event) {
   pos.innerHTML = `(${Math.floor(x_new - x_offset)}, ${Math.floor(y_new - y_offset)})`;
   if (clicked) {
     if (draw_enabled) {
-      stroke = [];
       draw_input(x_new, y_new);
     }
     if (move_enabled) {
@@ -109,7 +113,6 @@ function draw_input(x_new, y_new) {
     ctx.lineTo(x, y);
     ctx.stroke();
     ctx.closePath();
-    line_draw = false;
   }
   stroke.push([x, y]);
   stroke_chunk.push([x, y]);
@@ -132,7 +135,8 @@ function unclick() {
     clicked = false;
     if (stroke.length) {
       stroke_arr.push(stroke);
-      send_data(stroke, 'save');
+      console.log('saving')
+      send_data([stroke], 'save');
       stroke = [];
     }
     x = -1;
@@ -143,11 +147,10 @@ function unclick() {
       x_offset += x_offset + x_diff > 0 ? -x_offset : x_diff;
       y_offset += y_offset + y_diff > 0 ? -y_offset : y_diff;
     }
-    console.log('unclick', x_offset, y_offset)
     if (stroke_chunk.length === 1) {
       stroke_chunk.length = [];
     }
-    if (stroke_chunk.length > 1) send_data([stroke_chunk]);
+    send_data([stroke_chunk]);
     stroke_chunk = [];
   }
 }
@@ -210,77 +213,3 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
     }
   }
 }
-
-
-
-//----------------------------------------------------------------------------------------- >
-// S O C K E T ---------------------------------------------------------------------------- >
-//----------------------------------------------------------------------------------------- >
-
-
-function start_socket() {
-  let ws_start = 'ws://';
-  if (loc.protocol == 'https:') {
-    ws_start = 'wss://';
-  }
-  let endpoint = ws_start + loc.host + '/ws/draw/' + room_name + '/';
-  let socket = new WebSocket(endpoint);
-
-  socket.onopen = function(e) {
-    console.log('open');
-  };
-
-  socket.onerror = function(e) {
-    console.log('error', e);
-  };
-
-  socket.onclose = function(e) {
-    console.log('closed');
-  };
-
-  socket.onmessage = function(e) {
-    console.log('message', e);
-    let data = JSON.parse(e.data);
-    console.log(data);
-    if (data.new_id) connection_id = data.new_id;
-    if (data.connection_id !== connection_id) {
-      if (data.stroke_arr) {
-        draw_strokes(data.stroke_arr, data.stroke_color, ctx_remote);
-      }
-    }
-  }
-  return socket;
-}
-
-let socket = start_socket();
-
-const ticks_before_reconnect = 10;
-let ticks_disconnected = 0;
-
-function socket_interval() {
-  if (socket.readyState === 3) {
-    disconnected_ticks += 1;
-    if (disconnected_ticks >= ticks_before_reconnect) {
-      socket = start_socket();
-      disconnected_ticks = 0;
-    }
-  }
-  else {
-    disconnected_ticks = 0;
-    if (stroke_chunk.length > 1) {
-      send_data([stroke_chunk]);
-      stroke_chunk = [stroke_chunk[stroke_chunk.length - 1]];
-    }
-  }
-}
-
-function send_data(arr, type='draw') {
-  socket.send(JSON.stringify({
-      type: type,
-      connection_id: connection_id,
-      stroke_arr: arr,
-      stroke_color: ctx.strokeStyle
-  }));
-}
-
-send_timer = setInterval(socket_interval, 500);

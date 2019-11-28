@@ -69,7 +69,7 @@ var letter_x_move = 1;
 var letter_y_move = 1;
 
 const timer_mult_base = 10;
-var timer_mult = timer_mult_base;
+var timer_mult = 29;
 
 
 document.onmousemove = function(event) {

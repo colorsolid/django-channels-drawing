@@ -1,0 +1,61 @@
+{% extends 'home/labs.html' %}
+
+{% load staticfiles %}
+
+{% block subtitle %} > Drawing Lobby{% endblock %}
+
+{% block content_labs %}
+  <div class="row">
+    <div class="col-xl-4 col-sm-0"></div>
+    <div class="col-xl-4 col-sm-12">
+      <h3 class="text-light">Create or join a drawing room</h3>
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text" id="nickname-descriptor">Nickname</span>
+        </div>
+        <input type="text" class="form-control" id="nickname-input" aria-describedby="nickname-descriptor" value="{{ nickname }}">
+        <div class="input-group-append">
+          <span id="hash-display" class="input-group-text">#{{ user_id|slice:'1:5' }}</span>
+        </div>
+        <div class="input-group-append">
+          <button class="btn btn-primary" id="btn-randomize-nickname" data-toggle="tooltip" data-placement="top" title="Randomize name">&#127922;</button>
+        </div>
+      </div>
+      <div class="input-group mb-3">
+        <div class="input-group-prepend">
+          <span class="input-group-text" id="roomname-descriptor">Room name</span>
+        </div>
+        <input type="text" class="form-control" id="room-name-input" aria-describedby="roomname-descriptor" value="{{ room_name }}">
+        <div class="input-group-append">
+          <button class="btn btn-primary" id="btn-randomize-room-name" data-toggle="tooltip" data-placement="top" title="Randomize name">&#127922;</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4 col-sm-0"></div>
+  </div>
+  <div class="row">
+    <div class="col-xl-4 col-sm-0"></div>
+    <div class="col-xl-4 col-sm-12">
+      <button id="room-submit" class="btn btn-block btn-primary">Create room</button>
+    </div>
+    <div class="col-sm-4 col-sm-0"></div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="text/javascript">
+    const letters = [
+      {letter: 'd r a w i n g', x: 3, y: 55},
+      {letter: 'd', x: 3, y: 55},
+      {letter: 'r', x: 39, y: 55},
+      {letter: 'a', x: 65, y: 55},
+      {letter: 'w', x: 99, y: 55},
+      {letter: 'i', x: 141, y: 55},
+      {letter: 'n', x: 163, y: 55},
+      {letter: 'g', x: 199, y: 55},
+    ];
+    const [nicknames, room_names] = {{ random_choices }};
+  </script>
+  <script src="{% static 'js/home/header.js' %}" type="text/javascript"></script>
+  <script src="{% static 'js/draw/lobby.js' %}" type="text/javascript"></script>
+{% endblock %}

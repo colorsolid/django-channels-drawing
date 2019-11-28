@@ -6,8 +6,6 @@ body {
 #board {
   z-index: 5;
   position: absolute;
-  width: 1500px;
-  height: 900px;
   left: 0px;
   top : 0px;
 }
@@ -15,14 +13,14 @@ body {
 #board-remote {
   z-index: 1;
   position: absolute;
-  background-color: #fff;
   left: 0px;
   top: 0px;
 }
 
 #board-wrapper {
   width: 1500px;
-  height: 900px;
+  height: 900px !important;
+  background-color: #fff;
 }
 
 #functions-bar {
