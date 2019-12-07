@@ -1,0 +1,65 @@
+{% extends 'base/base.html' %}
+
+{% load staticfiles %}
+
+{% block title %}Labs > Drawing [{{ room_name|cut:"\"" }}]{% endblock %}
+
+{% block head_extend %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/draw/draw.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="position-relative" id="main">
+    <div class="position-fixed ml-3 text-left" id="functions-bar">
+      <div class="text-dark">
+        <a href="/">LABS HOME</a> |
+        <a href="/draw">LOBBY</a>
+      </div>
+      <div>
+        <button id="btn-move-toggle" data-move="false" class="btn btn-small btn-dark">
+          &#128220;&#128274;
+        </button>
+        <button id="btn-draw-toggle" data-draw="true" class="btn btn-small btn-success">
+          &#9998;
+        </button>
+        <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapse-extra-options" aria-expanded="false" aria-controls="collapse-extra-options">
+          OPTIONS
+        </button>
+        <div class="collapse mt-1" id="collapse-extra-options">
+          <div class="card bg-dark" style="width: 18rem;">
+            <div class="card-body">
+              <h5 class="card-title">COLORS</h5>
+              <button data-color="#000" class="btn btn-color btn-secondary">&#9632;</button>
+              <button data-color="#fff" class="btn btn-color">&#9632;</button>
+              <button data-color="#ff0000" class="btn btn-color">&#9632;</button>
+              <button data-color="#00ff00" class="btn btn-color">&#9632;</button>
+              <button data-color="#0000ff" class="btn btn-color">&#9632;</button>
+              <button data-color="#ffff00" class="btn btn-color">&#9632;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-dark mt-1 text-center" id="pos">(0, 0)</div>
+      <div class="mt-1 mb-1 bg-dark text-center" id="user-list-wrapper">
+        <h5>Users</h5>
+        <table class="table text-light" id="user-list"></table>
+      </div>
+    </div>
+    <div id="board-wrapper" class="position-relative">
+      <canvas id="board" height="4096px" width="4096px"></canvas>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="text/javascript">
+    const room_name = "{{ room_name }}";
+    const user_id = "{{ user_id }}";
+    const nickname = "{{ nickname }}";
+  </script>
+  <script src="{% static 'js/draw/socket.js' %}" type="text/javascript"></script>
+  <script src="{% static 'js/draw/draw.js' %}" type="text/javascript"></script>
+{% endblock %}
+
+
+{# &#128275; #}

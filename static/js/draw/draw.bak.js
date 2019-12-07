@@ -1,11 +1,10 @@
 window.scrollTo(0, 0);
 
 const main = document.getElementById('main');
-const board = document.querySelector('.board-local');
+const board = document.getElementById('board');
 //const board_remote = document.getElementById('board-remote');
 const pos = document.getElementById('pos');
 const board_wrapper = document.getElementById('board-wrapper');
-board_wrapper !== 'bored_rapper';
 const functions_bar = document.getElementById('functions-bar');
 
 const color_btns = functions_bar.querySelectorAll('.btn-color');
@@ -37,7 +36,7 @@ board_wrapper.style.height = (window.innerHeight - board_wrapper.getBoundingClie
 window.onresize = function() {
   board_wrapper.style.height = (window.innerHeight - board_wrapper.getBoundingClientRect().y) + 'px';
   rect = board.getBoundingClientRect();
-};
+}
 
 
 
@@ -49,7 +48,6 @@ window.onresize = function() {
 var stroke_arr = [];
 var stroke = [];
 var stroke_chunk = [];
-
 
 // mouse coordinates
 var x = -1;
@@ -64,8 +62,8 @@ var x_diff = 0;
 var y_diff = 0;
 
 // scroll position
-var x_offset = -2048 + (window.innerWidth / 2);
-var y_offset = -2048 + (window.innerHeight / 2);
+var x_offset = 0;
+var y_offset = 0;
 
 var clicked = false;
 var line_draw = false;
@@ -92,12 +90,7 @@ board.ontouchmove = input_move;
 function input_move(event) {
   let x_new = (event.clientX || event.targetTouches[0].clientX) - rect.left;
   let y_new = (event.clientY || event.targetTouches[0].clientY) - rect.top;
-  if (x_grab === -1 && y_grab === -1) {
-    pos.innerHTML = `(${Math.floor(x_new - x_offset - 2048)}, ${-Math.floor(y_new - y_offset - 2048)})`;
-  }
-  else {
-    pos.innerHTML = `(${Math.floor(x_grab - x_offset - 2048)}, ${-Math.floor(y_grab - y_offset - 2048)})`;
-  }
+  pos.innerHTML = `(${Math.floor(x_new - x_offset)}, ${Math.floor(y_new - y_offset)})`;
   if (clicked) {
     if (draw_enabled) {
       draw_input(x_new, y_new);
@@ -126,7 +119,7 @@ function draw_input(x_new, y_new) {
   stroke_chunk.push([x, y]);
 }
 
-function move_board(x_new=0, y_new=0) {
+function move_board(x_new, y_new) {
   x_diff = x_new - x_grab;
   y_diff = y_new - y_grab;
   let margin_x = x_offset + x_diff;
@@ -140,7 +133,7 @@ function move_board(x_new=0, y_new=0) {
 }
 
 board.onmouseup = unclick;
-//board.onmouseout = unclick;
+board.onmouseout = unclick;
 board.ontouchend = unclick;
 
 function unclick() {
@@ -169,6 +162,7 @@ function unclick() {
 }
 
 
+
 //----------------------------------------------------------------------------------------- >
 // B U T T O N _ E V E N T S -------------------------------------------------------------- >
 //----------------------------------------------------------------------------------------- >
@@ -191,7 +185,7 @@ function toggle_move_mode() {
   btn.dataset.move = (!(btn.dataset.move === 'true')).toString();
   btn.classList.toggle('btn-success');
   btn.classList.toggle('btn-dark');
-  move_enabled = draw_enabled;
+  move_enabled = !move_enabled;
 }
 
 function toggle_draw_mode() {
@@ -199,7 +193,7 @@ function toggle_draw_mode() {
   btn.dataset.draw = (!(btn.dataset.draw === 'true')).toString();
   btn.classList.toggle('btn-success');
   btn.classList.toggle('btn-dark');
-  draw_enabled = !move_enabled;
+  draw_enabled = !draw_enabled;
 }
 
 
@@ -228,11 +222,18 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
 
 function draw_segments(drawing) {
   let _ctx;
-  if (drawing.hash === user_id.substr(0, 12)) _ctx = ctx;
+  if (drawing.hash === user_id.substr(0, 12)) {
+    _ctx = ctx;
+  }
   else {
     let ctx_id = drawing.nickname + '!' + drawing.hash;
-    if (!(ctx_id in remote_boards)) remote_boards[ctx_id] = new_board(drawing.hash);
-    _ctx = remote_boards[ctx_id].ctx;
+    if (drawing.hash === user_id.substr(0, 12)) {
+
+    }
+    if (!(ctx_id in remote_boards)) {
+      remote_boards[ctx_id] = new_board(drawing.hash);
+    }
+     _ctx = remote_boards[ctx_id].ctx;
   }
   for (let segment of drawing['segments']) {
     draw_strokes([segment.coords], segment.color, _ctx);
@@ -250,6 +251,3 @@ function new_board(hash) {
   };
   return dict;
 }
-
-
-move_board();

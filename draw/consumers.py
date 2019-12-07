@@ -1,47 +1,64 @@
 from    channels.generic.websocket import AsyncWebsocketConsumer
 import  channels.layers
 from    django.contrib.sessions.backends.db import SessionStore
+import  draw.util as ut
 import  json
 import  os
 import  random
 import  string
 from    foli.utils import random_string
-from    .models import DrawingBoard, Artist
+from    .models import DrawingBoard, Artist, Drawing, Segment
 
 
 class DrawConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = None
-        await self.gather_data()
-        if self.room_name:
-            await self.channel_layer.group_add(
-                self.room_group_name,
-                self.channel_name
-            )
-            await self.accept()
-            await self.update_users()
-            await self.send_data({'set_connection_id': self.connection_id})
-
-
-    async def gather_data(self):
         if not hasattr(self.channel_layer, 'user_list'):
             self.channel_layer.user_list = {}
         room_name = self.scope['url_route']['kwargs']['room_name']
         self.connection_id = random_string()
         session = self.scope['session']
         self.user_id = session.get('user_id')
-        self.hash = self.user_id[0:4]
+        self.hash = self.user_id[0:12]
         self.nickname = session.get('nickname')
         if not self.user_id or not self.nickname:
             await self.close()
         else:
+            await self.accept()
             self.room_name = self.scope['url_route']['kwargs']['room_name'].lower()
+            if not self.room_name in self.channel_layer.user_list:
+                self.channel_layer.user_list[self.room_name] = []
             self.room_group_name = 'draw_' + self.room_name
+            try:
+                self.board = DrawingBoard.objects.get(name=self.room_name)
+                await self.send_load_data()
+            except DrawingBoard.DoesNotExist:
+                self.board = None
+            try:
+                self.artist = Artist.objects.get(user_id=self.user_id)
+            except Artist.DoesNotExist:
+                self.artist = None
+            self.segment_coords = []
+
+
+    async def send_load_data(self):
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.add_user()
+        drawings = ut.get_drawings(self.board)
+        if drawings:
+            data = {
+                'note': 'load',
+                'drawings': drawings,
+                'set_connection_id': self.connection_id
+            }
+            await self.send_data(data)
 
 
     async def disconnect(self, close_code):
         if self.user_id and self.nickname:
-            await self.update_users(new=False)
+            await self.remove_user()
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -51,13 +68,31 @@ class DrawConsumer(AsyncWebsocketConsumer):
     # message from client, data['type'] calls named function
     async def receive(self, text_data):
         data = json.loads(text_data)
-        if data['type'] == 'save':
-            await self.save(data)
+        if 'stroke_arr' in data:
+            if not self.artist:
+                self.artist = ut.try_artist(self.user_id, self.nickname)
+            if not self.board:
+                self.board = ut.try_board(self.room_name, self.artist)
+                self.board.board_artists.add(self.artist)
+            self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
+            self.segment_coords += data['stroke_arr'][0]
+            if data['type'] == 'save':
+                await self.save(data)
+                data['type'] = 'draw'
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                data
+            )
 
 
     # message to client, called data['type'] in receive()
     async def draw(self, data):
-        await self.send(text_data=json.dumps(data))
+        if data['connection_id'] != self.connection_id:
+            print(data)
+            _data = {k:data[k] for k in data}
+            _data['hash'] = _data['user_id'][0:12]
+            del _data['user_id']
+            await self.send(text_data=json.dumps(_data))
 
 
     async def send_data(self, data):
@@ -66,29 +101,17 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def save(self, data):
-        room_name = self.scope['url_route']['kwargs']['room_name']
-        user_id = self.scope['session'].get('user_id')
-        board = DrawingBoard.objects.get(name=room_name)
-        artist = Artist.objects.get(user_id=user_id)
-        
-
-
-    async def update_users(self, new=True):
-        if new:
-            await self.add_user()
-        else:
-            await self.remove_user()
+        segment = Segment(
+            drawing = self.drawing,
+            color = data['stroke_color'],
+            coords = self.segment_coords
+        )
+        segment.save()
+        self.segment_coords = []
 
 
     async def add_user(self):
-        if not self.room_name in self.channel_layer.user_list:
-            self.channel_layer.user_list[self.room_name] = []
         user_list = self.channel_layer.user_list[self.room_name]
-        user_list_serial = [{
-            'nickname': u['nickname'],
-            'hash': u['user_id'][0:4]
-        } for u in user_list]
-        await self.send_data({'note': 'load', 'list': user_list_serial})
         i, user = next(((i, u) for i, u in enumerate(user_list) if u['user_id'] == self.user_id), (None, None))
         channel_data = {}
         if user:
@@ -109,14 +132,15 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 'connection_ids': [self.connection_id]
             }
             user_list.append(user_data)
-            channel_data = {k:user_data[k] for k in user_data}
+            channel_data = {
+                k:user_data[k] for k in user_data if k not in ['user_id', 'connection_ids']
+            }
             channel_data.update({
                 'note': 'connected',
                 'connection_id': self.connection_id,
                 'hash': self.hash,
                 'type': 'send_data'
             })
-            del channel_data['user_id']
         if channel_data:
             await self.channel_layer.group_send(
                 self.room_group_name,

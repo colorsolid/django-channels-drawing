@@ -1,16 +1,21 @@
 body {
   background-color: #0c0c0c;
   color: #dcdcdc;
+  overflow: hidden;
 }
 
-#board {
+#body-wrapper {
+  padding-left: 0px !important;
+}
+
+.board-local {
   z-index: 5;
   position: absolute;
   left: 0px;
   top : 0px;
 }
 
-#board-remote {
+.board-remote {
   z-index: 1;
   position: absolute;
   left: 0px;
@@ -18,11 +23,48 @@ body {
 }
 
 #board-wrapper {
-  width: 1500px;
-  height: 900px !important;
-  background-color: #fff;
+  width: 4096px;
+  height: 4096px !important;
+  background-color: #6c879f;
 }
 
 #functions-bar {
   z-index: 20;
+}
+
+#pos {
+  border-radius: 5px;
+  border: 1px solid #0d0e0f;
+}
+
+.user-self {
+  background-color: #0d0e0f;
+}
+
+#user-list td {
+  padding: .25rem !important;
+}
+
+#user-list a {
+  padding: 0 .25rem !important;
+}
+
+#user-list-wrapper {
+  max-height: 300px;
+  overflow-y: scroll;
+  border-radius: 5px;
+  border: 1px solid #0d0e0f;
+}
+
+#user-list {
+  margin-bottom: 0 !important;
+}
+
+.table td, .table th {
+  border-top: 1px solid #0d0e0f;
+}
+
+#btn-collapse-all {
+  vertical-align: inherit !important;
+  padding: 0 !important;
 }

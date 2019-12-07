@@ -7,23 +7,19 @@ class DrawingBoard(models.Model):
     creator = models.ForeignKey('Artist', on_delete=models.DO_NOTHING)
     name = models.CharField(max_length=50, default='')
     password = models.CharField(max_length=50, default='', blank=True)
-
-
-class DrawingBoardGroup(models.Model):
-    name = models.CharField(max_length=16, default='--MAIN--')
-    board = models.OneToOneField(DrawingBoard, on_delete=models.CASCADE, primary_key=True)
+    artists = models.ManyToManyField('Artist', related_name='artist_boards')
 
 
 class Artist(models.Model):
     nickname = models.CharField(max_length=50, default='')
     user_id = models.CharField(max_length=40, default='')
-    boards = models.ManyToManyField(DrawingBoard)
-    groups = models.ManyToManyField(DrawingBoardGroup)
+    boards = models.ManyToManyField(DrawingBoard, related_name='board_artists')
 
 
 class Drawing(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.DO_NOTHING)
     board = models.ForeignKey(DrawingBoard, on_delete=models.DO_NOTHING, null=True)
+    group_name = models.CharField(max_length=16, default='* * M A I N * *')
 
 
 class Segment(models.Model):
