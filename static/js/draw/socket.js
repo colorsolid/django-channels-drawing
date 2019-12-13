@@ -1,108 +1,8 @@
-const groups = {}
-const user_display = document.getElementById('user-list');
-
-function update_user_display(data) {
-  if (data.note === 'load') {
-    for (let drawing of data.drawings) {
-      let hash = drawing.hash;
-      let nickname = drawing.nickname;
-      let group_name = drawing.drawing_group;
-      if (!(group_name in groups)) {
-        groups[group_name] = [];
-      }
-      let user = {
-        nickname: nickname,
-        hash: hash,
-        elems: remote_boards[nickname + '!' + hash]
-      };
-      groups[group_name].push(user);
-    }
-    let group_names = Object.keys(groups);
-    group_names.sort();
-    user_display.innerHTML = '';
-    let tbody = el('tbody', '', '', {}, parent=user_display);
-    for (let group_name of group_names) {
-      groups[group_name].sort((a, b) => (a.nickname > b.nickname));
-      build_group_elems(groups[group_name], group_name, tbody);
-    }
-  }
-  if (data.note === 'connected') {
-
-  }
-  if (data.note === 'update') {
-
-  }
-  if (data.note === 'disconnected') {
-
-  }
-}
-
-
-function build_group_elems(group, group_name, tbody) {
-  let group_header_tr = el('tr', '', 'bg-secondary', {}, tbody);
-  el('td', group_name, 'text-right', {colspan: 3}, group_header_tr);
-  el(
-    'a', 'o', 'btn btn-dark text-light',
-    {
-      role: 'button',
-      'data-group': group_name,
-      'data-hidden': false
-    },
-    el('td', '', '', {}, group_header_tr)
-  ).onclick = toggle_group;
-  for (let user of group) {
-    let user_tr = el(
-      'tr', '',
-      `user-${user.hash}${user.hash === user_id.substr(0, 12) ? ' user-self' : ''}`,
-      {}, tbody
-    );
-    el('td', '', 'status', {}, user_tr);
-    el('td', user.nickname, 'nickname', {}, user_tr);
-    el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger', {}, el('td', '', '', {}, user_tr));
-    el('a', '&oslash;', 'btn btn-dark text-light',
-    {
-      role: 'button'
-    },
-    el('td', '', '', {}, user_tr));
-  }
-}
-
-
-function toggle_group() {
-  let users = groups[this.dataset.group];
-  let display = this.dataset.display === 'none' ? 'inherit' : 'none';
-  this.dataset.display = display;
-  for (let user of users) {
-    document.querySelector('#board-' + user.hash).style.display = display;
-  }
-}
-
-
-function toggle_user(user, mode=null) {
-  if (mode === null) {
-
-  }
-}
-
-
-function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=true, before_index=0) {
-  let elem = document.createElement(type);
-  elem.innerHTML = inner;
-  elem.className = classname;
-  let attr_keys = Object.keys(attrs);
-  for (let key of attr_keys) elem.setAttribute(key, attrs[key]);
-  if (parent) {
-    if (pos_end) parent.appendChild(elem);
-    else {
-      if (parent.childNodes.length - 1 < before_index) {
-        before_index = childNodex.length - 1;
-      }
-      let rel_elem = parent.childNodes[before_index];
-      parent.insertBefore(elem, rel_elem);
-    }
-  }
-  return elem;
-}
+var _drawing = {
+  segments: [],
+  start_index: 0,
+  end_index: 0
+};
 
 
 //----------------------------------------------------------------------------------------- >
@@ -141,6 +41,13 @@ function start_socket() {
     console.log('message data', data);
     if (data.drawings) {
       for (let drawing of data.drawings) {
+        if ('user_id' in drawing && drawing.user_id === user_id) {
+          console.log('drrr', drawing);
+          let start_index = drawing['segments'].lastIndexOf('CLEAR');
+          if (start_index === -1) start_index = 0;
+          drawing['start_index'] = start_index;
+          _drawing = drawing;
+        }
         draw_segments(drawing);
       }
     }
@@ -177,19 +84,19 @@ function socket_interval() {
   else {
     disconnected_ticks = 0;
     if (stroke_chunk.length > 1) {
-      console.log(stroke_chunk);
-      send_data([stroke_chunk]);
+      send_draw_data([stroke_chunk]);
       stroke_chunk = [stroke_chunk[stroke_chunk.length - 1]];
+    }
+    else if (stroke_chunk.length === 1 && stroke_chunk[0] === 'clear') {
+      send_draw_data([stroke_chunk]);
+      stroke_chunk = [];
     }
   }
 }
 
-function send_data(arr, type='draw') {
+function send_draw_data(arr, type='draw') {
   socket.send(JSON.stringify({
       type: type,
-      user_id: user_id,
-      nickname: nickname,
-      connection_id: connection_id,
       stroke_arr: arr,
       stroke_color: ctx.strokeStyle
   }));

@@ -1,7 +1,7 @@
 from    channels.generic.websocket import AsyncWebsocketConsumer
 import  channels.layers
 from    django.contrib.sessions.backends.db import SessionStore
-import  draw.util as ut
+import  draw.utils as ut
 import  json
 import  os
 import  random
@@ -15,6 +15,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         if not hasattr(self.channel_layer, 'user_list'):
             self.channel_layer.user_list = {}
         room_name = self.scope['url_route']['kwargs']['room_name']
+        self.clear_allowed = True
         self.connection_id = random_string()
         session = self.scope['session']
         self.user_id = session.get('user_id')
@@ -37,6 +38,14 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 self.artist = Artist.objects.get(user_id=self.user_id)
             except Artist.DoesNotExist:
                 self.artist = None
+            self.drawing = None
+            self.end_index = 0
+            if self.board and self.artist:
+                try:
+                    self.drawing = Drawing.objects.get(artist=self.artist, board=self.board)
+                    self.end_index = self.drawing.end_index
+                except Drawing.DoesNotExist:
+                    print('woops')
             self.segment_coords = []
 
 
@@ -46,7 +55,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.add_user()
-        drawings = ut.get_drawings(self.board)
+        drawings = ut.get_drawings(self.board, self.user_id)
         if drawings:
             data = {
                 'note': 'load',
@@ -68,31 +77,64 @@ class DrawConsumer(AsyncWebsocketConsumer):
     # message from client, data['type'] calls named function
     async def receive(self, text_data):
         data = json.loads(text_data)
-        if 'stroke_arr' in data:
-            if not self.artist:
-                self.artist = ut.try_artist(self.user_id, self.nickname)
-            if not self.board:
-                self.board = ut.try_board(self.room_name, self.artist)
-                self.board.board_artists.add(self.artist)
+        data['connection_id'] = self.connection_id
+        data['hash'] = self.hash
+        if not self.artist:
+            self.artist = ut.try_artist(self.user_id, self.nickname)
+        if not self.board:
+            self.board = ut.try_board(self.room_name, self.artist)
+            self.board.board_artists.add(self.artist)
+        if not self.drawing:
             self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
-            self.segment_coords += data['stroke_arr'][0]
-            if data['type'] == 'save':
-                await self.save(data)
-                data['type'] = 'draw'
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                data
+        if 'stroke_arr' in data:
+            if data['stroke_arr']:
+                if not self.clear_allowed:
+                    self.clear_allowed = True
+                self.segment_coords += data['stroke_arr'][0]
+                if data['type'] == 'save':
+                    await self.save(data)
+                    data['type'] = 'draw'
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    data
+                )
+            if data['type'] == 'clear':
+                if self.clear_allowed:
+                    self.clear()
+            if data['type'] == 'undo':
+                self.undo()
+            if data['type'] == 'redo':
+                self.redo()
+
+
+    def clear(self):
+        if self.clear_allowed:
+            print('clearing')
+            self.clear_allowed = False
+            segment = Segment(
+                drawing = self.drawing,
+                clear = True
             )
+            index = len(self.drawing.segment_set.all())
+            segment.index = index
+            segment.save()
+            index += 1
+            self.drawing.end_index = index
+            self.drawing.save()
+
+
+    def undo(self):
+        print('undo')
+
+
+    def redo(self):
+        print('redo')
 
 
     # message to client, called data['type'] in receive()
     async def draw(self, data):
         if data['connection_id'] != self.connection_id:
-            print(data)
-            _data = {k:data[k] for k in data}
-            _data['hash'] = _data['user_id'][0:12]
-            del _data['user_id']
-            await self.send(text_data=json.dumps(_data))
+            await self.send(text_data=json.dumps(data))
 
 
     async def send_data(self, data):
@@ -101,12 +143,16 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def save(self, data):
+        index = len(self.drawing.segment_set.all())
         segment = Segment(
             drawing = self.drawing,
             color = data['stroke_color'],
-            coords = self.segment_coords
+            coords = self.segment_coords,
+            index = index
         )
         segment.save()
+        self.drawing.end_index += 1
+        self.drawing.save()
         self.segment_coords = []
 
 

@@ -1,8 +1,10 @@
-window.scrollTo(0, 0);
+window.onload = function() {
+  window.scrollTo(0, 0);
+}
+
 
 const main = document.getElementById('main');
 const board = document.querySelector('.board-local');
-//const board_remote = document.getElementById('board-remote');
 const pos = document.getElementById('pos');
 const board_wrapper = document.getElementById('board-wrapper');
 board_wrapper !== 'bored_rapper';
@@ -10,13 +12,10 @@ const functions_bar = document.getElementById('functions-bar');
 
 const color_btns = functions_bar.querySelectorAll('.btn-color');
 
-//const user_id = Math.random().toString(36).substr(2);
-
 var ctx = board.getContext('2d');
 var remote_boards = {};
 ctx.save();
 ctx.lineWidth = 1;
-//var ctx_remote = board_remote.getContext('2d');
 
 color_btns.forEach(btn => {
   btn.style.color = btn.dataset.color;
@@ -29,15 +28,16 @@ color_btns.forEach(btn => {
 });
 
 var rect = board.getBoundingClientRect();
+console.log(rect);
 
 var draw_enabled = true;
 var move_enabled = false;
 
-board_wrapper.style.height = (window.innerHeight - board_wrapper.getBoundingClientRect().y) + 'px';
+board_wrapper.style.height = (window.innerHeight) + 'px';
 window.onresize = function() {
-  board_wrapper.style.height = (window.innerHeight - board_wrapper.getBoundingClientRect().y) + 'px';
+  board_wrapper.style.height = (window.innerHeight) + 'px';
   rect = board.getBoundingClientRect();
-};
+}
 
 
 
@@ -64,34 +64,33 @@ var x_diff = 0;
 var y_diff = 0;
 
 // scroll position
-var x_offset = -2048 + (window.innerWidth / 2);
-var y_offset = -2048 + (window.innerHeight / 2);
+var x_offset = Math.round(-2048 + (window.innerWidth / 2));
+var y_offset = Math.round(-2048 + (window.innerHeight / 2));
 
 var clicked = false;
 var line_draw = false;
 
 //board.addEventListener('mousedown', click);
-board.onmousedown = click;
+board_wrapper.onmousedown = click;
 //board.addEventListener('touchstart', click);
-board.ontouchstart = click;
+board_wrapper.ontouchstart = click;
 
 function click(event) {
   event.preventDefault();
   clicked = true;
   if (move_enabled) {
-    x_grab = (event.clientX || event.targetTouches[0].clientX) - rect.left;
-    y_grab = (event.clientY || event.targetTouches[0].clientY) - rect.top;
+    x_grab = (event.clientX || event.targetTouches[0].clientX);
+    y_grab = (event.clientY || event.targetTouches[0].clientY);
   }
 }
 
-//board.addEventListener('mousemove', input_move);
-board.onmousemove = input_move;
-//board.addEventListener('touchmove', input_move);
-board.ontouchmove = input_move;
+board_wrapper.onmousemove = input_move;
+board_wrapper.ontouchmove = input_move;
 
 function input_move(event) {
-  let x_new = (event.clientX || event.targetTouches[0].clientX) - rect.left;
-  let y_new = (event.clientY || event.targetTouches[0].clientY) - rect.top;
+  let x_new = (event.clientX || event.targetTouches[0].clientX);
+  let y_new = (event.clientY || event.targetTouches[0].clientY);
+  console.log(event.clientY, rect.top)
   if (x_grab === -1 && y_grab === -1) {
     pos.innerHTML = `(${Math.floor(x_new - x_offset - 2048)}, ${-Math.floor(y_new - y_offset - 2048)})`;
   }
@@ -99,7 +98,7 @@ function input_move(event) {
     pos.innerHTML = `(${Math.floor(x_grab - x_offset - 2048)}, ${-Math.floor(y_grab - y_offset - 2048)})`;
   }
   if (clicked) {
-    if (draw_enabled) {
+    if (draw_enabled && board.style.display !== 'none') {
       draw_input(x_new, y_new);
     }
     if (move_enabled) {
@@ -139,14 +138,20 @@ function move_board(x_new=0, y_new=0) {
   //functions_bar.style.marginTop = (-y_offset - y_diff > 0 ? -y_offset - y_diff : 0) + 'px';
 }
 
-board.onmouseup = unclick;
-//board.onmouseout = unclick;
-board.ontouchend = unclick;
+board_wrapper.onmouseup = unclick;
+board_wrapper.onmouseout = unclick;
+board_wrapper.ontouchend = unclick;
 
 function unclick() {
   if (clicked) {
     clicked = false;
     if (stroke.length) {
+      let stroke_data = {
+        color: ctx.strokeStyle,
+        coords: stroke,
+        thickness: ctx.lineWidth
+      };
+      _drawing.segments.push(stroke_data);
       stroke_arr.push(stroke);
       stroke = [];
     }
@@ -160,10 +165,9 @@ function unclick() {
       //x_offset += x_offset + x_diff > 0 ? -x_offset : x_diff;
       //y_offset += y_offset + y_diff > 0 ? -y_offset : y_diff;
     }
-    if (stroke_chunk.length === 1) {
-      stroke_chunk.length = [];
+    if (stroke_chunk.length) {
+      send_draw_data([stroke_chunk], 'save');
     }
-    send_data([stroke_chunk], 'save');
     stroke_chunk = [];
   }
 }
@@ -202,6 +206,21 @@ function toggle_draw_mode() {
   draw_enabled = !move_enabled;
 }
 
+var btn_undo = document.getElementById('btn-undo');
+btn_undo.onclick = function() {
+  send_draw_data(null, 'undo');
+}
+
+var btn_redo = document.getElementById('btn-redo');
+btn_redo.onclick = function() {
+  send_draw_data(null, 'redo');
+}
+
+var btn_clear = document.getElementById('btn-clear');
+btn_clear.onclick = function() {
+  ctx.clearRect(0, 0, board.width, board.height);
+  send_draw_data(null, 'clear');
+}
 
 
 //----------------------------------------------------------------------------------------- >
@@ -228,14 +247,23 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
 
 function draw_segments(drawing) {
   let _ctx;
+  let segments = drawing.segments;
   if (drawing.hash === user_id.substr(0, 12)) _ctx = ctx;
   else {
     let ctx_id = drawing.nickname + '!' + drawing.hash;
     if (!(ctx_id in remote_boards)) remote_boards[ctx_id] = new_board(drawing.hash);
     _ctx = remote_boards[ctx_id].ctx;
   }
-  for (let segment of drawing['segments']) {
-    draw_strokes([segment.coords], segment.color, _ctx);
+  if (drawing.end_index) {
+    segments = segments.slice(0, drawing.end_index + 1);
+  }
+  if (drawing.start_index) {
+    segments = segments.slice(drawing.start_index);
+  }
+  for (let segment of segments) {
+    if (segment !== 'CLEAR') {
+      draw_strokes([segment.coords], segment.color, _ctx);
+    }
   }
 }
 

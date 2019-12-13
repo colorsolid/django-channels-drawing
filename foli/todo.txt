@@ -4,18 +4,23 @@ Labs
   Drawing
     Users via hash (show full hash id to user)
     Users via registration
-    ** Save users drawing segments
-    ** Load all previous drawings into separate contexts
     Lobby
+      Random names through channels
       Display number of users in each room
       Correct form validation
-      * Show all previously created DrawingBoards on lobby screen
+      * Show all previously created DrawingBoards on lobby screen, probably paginate
+      * Mark all boards the user has drawn in and filtering/sorting options
     Room
+      Middle mouse click/double tap to move
+      Show user marker at end of user's drawing
       Draw dots
       Draw shapes
       Fill?
+      Zoom?
       * Undo/redo
-      * Clear
-      * Hide/show user's drawings
-      * Group users by group name
-      * Hide/show groups's drawings
+      * Show online status
+      * Handle server disconnects and reconnects
+      * Handle updated user name or group in room
+      * Fade sidebar when drawing
+      * Line thickness
+      * Color picker

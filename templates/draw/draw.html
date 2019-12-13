@@ -5,7 +5,7 @@
 {% block title %}Labs > Drawing [{{ room_name|cut:"\"" }}]{% endblock %}
 
 {% block head_extend %}
-  <link rel="stylesheet" type="text/css" href="{% static 'css/draw/draw.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'css/draw.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -19,13 +19,13 @@
       </span>
         <div class="mb-1">
           <div>
-            <button id="btn-move-toggle" data-move="false" class="btn btn-small btn-dark">
+            <button class="btn btn-small btn-dark bd-dark" id="btn-move-toggle" data-move="false">
               &#128220;&#128274;
             </button>
-            <button id="btn-draw-toggle" data-draw="true" class="btn btn-small btn-success">
+            <button class="btn btn-small btn-success bd-dark" id="btn-draw-toggle" data-draw="true">
               &#9998;
             </button>
-            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapse-extra-options" aria-expanded="false" aria-controls="collapse-extra-options">
+            <button class="btn btn-primary bd-dark" data-toggle="collapse" data-target="#collapse-extra-options" aria-expanded="false" aria-controls="collapse-extra-options">
               OPTIONS
             </button>
             <div class="collapse mt-1" id="collapse-extra-options">
@@ -43,6 +43,11 @@
             </div>
           </div>
           <div class="bg-dark mt-1 text-center pb-1" id="pos">(0, 0)</div>
+          <div id="board-functions" class="text-center mt-1 p-1 border-round">
+            <button id="btn-undo" class="btn btn-primary bd-dark">undo</button>
+            <button id="btn-redo" class="btn btn-primary bd-dark">redo</button>
+            <button id="btn-clear" class="btn btn-primary bd-dark">clear</button>
+          </div>
           <div class="mt-1 mb-1 bg-dark text-center" id="user-list-wrapper">
             <h5>Users</h5>
             <table class="table text-light" id="user-list"></table>
@@ -61,6 +66,7 @@
     const user_id = "{{ user_id }}";
     const nickname = "{{ nickname }}";
   </script>
+  <script src="{% static 'js/draw/functions.js' %}" type="text/javascript"></script>
   <script src="{% static 'js/draw/socket.js' %}" type="text/javascript"></script>
   <script src="{% static 'js/draw/draw.js' %}" type="text/javascript"></script>
 {% endblock %}

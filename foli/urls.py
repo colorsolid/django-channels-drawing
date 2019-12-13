@@ -18,7 +18,7 @@ from django.urls import include, path, re_path
 from draw.views import room
 
 urlpatterns = [
-    path('', include('home.urls')),
+    path('', include('labs.urls')),
     path('draw/', include('draw.urls')),
     path('admin/', admin.site.urls)
 ]

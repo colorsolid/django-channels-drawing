@@ -1,7 +1,7 @@
 window.scrollTo(0, 0);
 
 const main = document.getElementById('main');
-const board = document.getElementById('board');
+const board = document.querySelector('.board-local');
 //const board_remote = document.getElementById('board-remote');
 const pos = document.getElementById('pos');
 const board_wrapper = document.getElementById('board-wrapper');
@@ -156,7 +156,7 @@ function unclick() {
     if (stroke_chunk.length === 1) {
       stroke_chunk.length = [];
     }
-    send_data([stroke_chunk], 'save');
+    send_draw_data([stroke_chunk], 'save');
     stroke_chunk = [];
   }
 }
@@ -207,15 +207,17 @@ function toggle_draw_mode() {
 // and stroke_arr is an array of strokes
 function draw_strokes(stroke_arr, stroke_color, ctx) {
   for (let stroke of stroke_arr) {
-    for (let i = 0; i < stroke.length - 1; i++) {
-      ctx.strokeStyle = stroke_color;
-      ctx.beginPath();
-      let a = stroke[i];
-      let b = stroke[i + 1];
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-      ctx.stroke();
-      ctx.closePath();
+    if (stroke) {
+      for (let i = 0; i < stroke.length - 1; i++) {
+        ctx.strokeStyle = stroke_color;
+        ctx.beginPath();
+        let a = stroke[i];
+        let b = stroke[i + 1];
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+        ctx.closePath();
+      }
     }
   }
 }

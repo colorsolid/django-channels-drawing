@@ -20,10 +20,13 @@ class Drawing(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.DO_NOTHING)
     board = models.ForeignKey(DrawingBoard, on_delete=models.DO_NOTHING, null=True)
     group_name = models.CharField(max_length=16, default='* * M A I N * *')
+    end_index = models.IntegerField(default=0)
 
 
 class Segment(models.Model):
+    index = models.IntegerField(default=0)
     drawing = models.ForeignKey(Drawing, on_delete=models.DO_NOTHING)
-    color = models.CharField(max_length=20, default='#000')
-    coords = ArrayField(ArrayField(models.IntegerField(default=0), size=2))
+    clear = models.BooleanField(default=False)
+    color = models.CharField(max_length=20, default='#000', null=True)
+    coords = ArrayField(ArrayField(models.IntegerField(default=0), size=2), null=True)
     thickness = models.IntegerField(default=1)

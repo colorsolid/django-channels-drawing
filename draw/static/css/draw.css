@@ -38,7 +38,7 @@ body {
 }
 
 .user-self {
-  background-color: #0d0e0f;
+  background-color: #1b1b1c;
 }
 
 #user-list td {
@@ -60,6 +60,16 @@ body {
   margin-bottom: 0 !important;
 }
 
+#user-list button {
+  padding: 0 .25rem !important;
+  width: 29px;
+}
+
+#user-list button:hover {
+  background-color: #23272b !important;
+  border-color: #1d2124 !important;
+}
+
 .table td, .table th {
   border-top: 1px solid #0d0e0f;
 }
@@ -67,4 +77,8 @@ body {
 #btn-collapse-all {
   vertical-align: inherit !important;
   padding: 0 !important;
+}
+
+.bd-dark {
+  border: 1px solid #0d0e0f;
 }

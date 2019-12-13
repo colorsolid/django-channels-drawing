@@ -43,7 +43,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134', '192.168.1.124']
 
 INSTALLED_APPS = [
     'channels',
-    'home',
+    'labs',
     'draw',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -155,6 +155,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'draw/static')
 )
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

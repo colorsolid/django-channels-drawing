@@ -38,7 +38,6 @@ def lobby(request):
 def start_drawing(request):
     room_name = slugify(request._post['name'])
     nickname = slugify(request._post['nickname'])
-    request.session['last_room_name'] = room_name
     request.session['nickname'] = nickname
     return redirect(f'/draw/{room_name}')
 
@@ -46,6 +45,7 @@ def start_drawing(request):
 def room(request, room_name):
     context = get_context(request)
     context['room_name'] = mark_safe(room_name)
+    request.session['last_room_name'] = room_name
     return render(request, 'draw/draw.html', context)
 
 
