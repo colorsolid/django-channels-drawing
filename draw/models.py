@@ -20,7 +20,7 @@ class Drawing(models.Model):
     artist = models.ForeignKey(Artist, on_delete=models.DO_NOTHING)
     board = models.ForeignKey(DrawingBoard, on_delete=models.DO_NOTHING, null=True)
     group_name = models.CharField(max_length=16, default='* * M A I N * *')
-    end_index = models.IntegerField(default=0)
+    end_index = models.IntegerField(default=-1)
 
 
 class Segment(models.Model):

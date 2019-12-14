@@ -1,6 +1,7 @@
 from    channels.generic.websocket import AsyncWebsocketConsumer
 import  channels.layers
 from    django.contrib.sessions.backends.db import SessionStore
+from    django.db.models import F
 import  draw.utils as ut
 import  json
 import  os
@@ -34,6 +35,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 await self.send_load_data()
             except DrawingBoard.DoesNotExist:
                 self.board = None
+            print(self.board, self.room_name)
             try:
                 self.artist = Artist.objects.get(user_id=self.user_id)
             except Artist.DoesNotExist:
@@ -109,26 +111,32 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
     def clear(self):
         if self.clear_allowed:
-            print('clearing')
-            self.clear_allowed = False
-            segment = Segment(
-                drawing = self.drawing,
-                clear = True
-            )
-            index = len(self.drawing.segment_set.all())
-            segment.index = index
-            segment.save()
-            index += 1
-            self.drawing.end_index = index
-            self.drawing.save()
+            segments = self.drawing.segment_set.all()
+            last = segments.last()
+            if not last.clear:
+                self.clear_allowed = False
+                index = len(segments)
+                segment = Segment(
+                    drawing = self.drawing,
+                    clear = True,
+                    index = index
+                )
+                segment.save()
+                self.drawing.end_index = index
+                self.drawing.save()
 
 
     def undo(self):
-        print('undo')
+        if self.drawing.end_index > -1:
+            self.drawing.end_index -= 1
+            self.drawing.save()
 
 
     def redo(self):
-        print('redo')
+        last_index = len(self.drawing.segment_set.all())
+        if self.drawing.end_index < last_index:
+            self.drawing.end_index += 1
+            self.drawing.save()
 
 
     # message to client, called data['type'] in receive()
@@ -151,7 +159,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
             index = index
         )
         segment.save()
-        self.drawing.end_index += 1
+        self.drawing.end_index = index
         self.drawing.save()
         self.segment_coords = []
 

@@ -20,6 +20,7 @@ Labs
       * Undo/redo
       * Show online status
       * Handle server disconnects and reconnects
+        - Prevent redrawing
       * Handle updated user name or group in room
       * Fade sidebar when drawing
       * Line thickness

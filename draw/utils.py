@@ -31,11 +31,13 @@ def get_drawings(board, user_id):
             'segments': []
         }
         if user_id == drawing.artist.user_id:
-            segments = drawing.segment_set.all().order_by('id')
+            segments = drawing.segment_set.all().order_by('index')
             _drawing['user_id'] = user_id
             _drawing['end_index'] = drawing.end_index
         else:
-            segments = drawing.segment_set.filter(index__lte=drawing.end_index).order_by('id')
+            print(board.id, drawing.end_index, drawing.id)
+            segments = drawing.segment_set.filter(index__lte=drawing.end_index).order_by('index')
+            print([s.index for s in segments])
             clears = segments.filter(clear=True)
             if clears:
                 start_index = clears.reverse()[0].index

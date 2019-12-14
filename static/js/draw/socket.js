@@ -42,10 +42,6 @@ function start_socket() {
     if (data.drawings) {
       for (let drawing of data.drawings) {
         if ('user_id' in drawing && drawing.user_id === user_id) {
-          console.log('drrr', drawing);
-          let start_index = drawing['segments'].lastIndexOf('CLEAR');
-          if (start_index === -1) start_index = 0;
-          drawing['start_index'] = start_index;
           _drawing = drawing;
         }
         draw_segments(drawing);

@@ -28,7 +28,6 @@ color_btns.forEach(btn => {
 });
 
 var rect = board.getBoundingClientRect();
-console.log(rect);
 
 var draw_enabled = true;
 var move_enabled = false;
@@ -79,6 +78,7 @@ function click(event) {
   event.preventDefault();
   clicked = true;
   if (move_enabled) {
+    board_wrapper.style.cursor = 'grabbing';
     x_grab = (event.clientX || event.targetTouches[0].clientX);
     y_grab = (event.clientY || event.targetTouches[0].clientY);
   }
@@ -90,7 +90,6 @@ board_wrapper.ontouchmove = input_move;
 function input_move(event) {
   let x_new = (event.clientX || event.targetTouches[0].clientX);
   let y_new = (event.clientY || event.targetTouches[0].clientY);
-  console.log(event.clientY, rect.top)
   if (x_grab === -1 && y_grab === -1) {
     pos.innerHTML = `(${Math.floor(x_new - x_offset - 2048)}, ${-Math.floor(y_new - y_offset - 2048)})`;
   }
@@ -160,6 +159,7 @@ function unclick() {
     x_grab = x;
     y_grab = y;
     if (move_enabled) {
+      board_wrapper.style.cursor = 'grab';
       x_offset += x_diff;
       y_offset += y_diff;
       //x_offset += x_offset + x_diff > 0 ? -x_offset : x_diff;
@@ -208,11 +208,19 @@ function toggle_draw_mode() {
 
 var btn_undo = document.getElementById('btn-undo');
 btn_undo.onclick = function() {
+  if (_drawing.end_index > -1) {
+    _drawing.end_index -= 1;
+    draw_segments(_drawing);
+  }
   send_draw_data(null, 'undo');
 }
 
 var btn_redo = document.getElementById('btn-redo');
 btn_redo.onclick = function() {
+  if (_drawing.end_index < _drawing.segments.length) {
+    _drawing.end_index += 1;
+    draw_segments(_drawing);
+  }
   send_draw_data(null, 'redo');
 }
 
@@ -254,17 +262,18 @@ function draw_segments(drawing) {
     if (!(ctx_id in remote_boards)) remote_boards[ctx_id] = new_board(drawing.hash);
     _ctx = remote_boards[ctx_id].ctx;
   }
-  if (drawing.end_index) {
-    segments = segments.slice(0, drawing.end_index + 1);
-  }
-  if (drawing.start_index) {
-    segments = segments.slice(drawing.start_index);
+  _ctx.clearRect(0, 0, board.width, board.height);
+  segments = segments.slice(0, drawing.end_index + 1);
+  let start_index = segments.lastIndexOf('CLEAR');
+  if (start_index > 0) {
+    segments = segments.slice(start_index);
   }
   for (let segment of segments) {
     if (segment !== 'CLEAR') {
       draw_strokes([segment.coords], segment.color, _ctx);
     }
   }
+  return segments;
 }
 
 function new_board(hash) {
