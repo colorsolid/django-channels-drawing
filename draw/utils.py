@@ -1,4 +1,26 @@
+from    django.utils.safestring import mark_safe
 from    .models import DrawingBoard, Artist, Drawing, Segment
+
+
+def get_context(request):
+    nickname = request.session.get('nickname')
+    if not nickname:
+        nickname = random_phrase('adj', 'noun')
+        request.session['nickname'] = nickname
+    user_id = request.session.get('user_id')
+    if not user_id or user_id != user_id.lower():
+        while True: # in the impossible event that the same id is generated twice (1 / 1.33675e+31)
+            user_id = random_string()
+            try:
+                artist = Artist.objects.get(user_id=user_id)
+            except Artist.DoesNotExist:
+                break
+        request.session['user_id'] = user_id
+    context = {
+        'user_id': mark_safe(user_id),
+        'nickname':  mark_safe(nickname)
+    }
+    return context
 
 
 def try_artist(id, nickname):
@@ -28,16 +50,14 @@ def get_drawings(board, user_id):
             'nickname': drawing.artist.nickname,
             'hash': drawing.artist.user_id[0:12],
             'drawing_group': drawing.group_name,
-            'segments': []
+            'segments': [],
+            'end_index': drawing.end_index
         }
         if user_id == drawing.artist.user_id:
             segments = drawing.segment_set.all().order_by('index')
             _drawing['user_id'] = user_id
-            _drawing['end_index'] = drawing.end_index
         else:
-            print(board.id, drawing.end_index, drawing.id)
             segments = drawing.segment_set.filter(index__lte=drawing.end_index).order_by('index')
-            print([s.index for s in segments])
             clears = segments.filter(clear=True)
             if clears:
                 start_index = clears.reverse()[0].index

@@ -1,12 +1,12 @@
-{% extends 'labs/base.html' %}
+{% extends 'labs/labs.html' %}
 
 {% load staticfiles %}
 
 {% block subtitle %} > Drawing Lobby{% endblock %}
 
 {% block head_extend %}
-  <link rel="stylesheet" type="text/css" href="{% static 'css/draw/lobby.css' %}">
-  <link rel="stylesheet" type="text/css" href="{% static 'css/labs/header.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'css/lobby.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'css/header.css' %}">
 {% endblock %}
 
 {% block content_labs %}
@@ -70,6 +70,6 @@
     ];
     const [nicknames, room_names] = {{ random_choices }};
   </script>
-  <script src="{% static 'js/labs/header.js' %}" type="text/javascript"></script>
-  <script src="{% static 'js/draw/lobby.js' %}" type="text/javascript"></script>
+  <script src="{% static 'js/header.js' %}" type="text/javascript"></script>
+  <script src="{% static 'js/lobby.js' %}" type="text/javascript"></script>
 {% endblock %}

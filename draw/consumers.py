@@ -22,6 +22,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         self.user_id = session.get('user_id')
         self.hash = self.user_id[0:12]
         self.nickname = session.get('nickname')
+        print(self.nickname)
         if not self.user_id or not self.nickname:
             await self.close()
         else:
@@ -32,12 +33,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
             self.room_group_name = 'draw_' + self.room_name
             try:
                 self.board = DrawingBoard.objects.get(name=self.room_name)
-                await self.send_load_data()
             except DrawingBoard.DoesNotExist:
                 self.board = None
-            print(self.board, self.room_name)
             try:
                 self.artist = Artist.objects.get(user_id=self.user_id)
+                if self.artist.nickname != self.nickname:
+                    self.artist.nickname = self.nickname
+                    self.artist.save()
             except Artist.DoesNotExist:
                 self.artist = None
             self.drawing = None
@@ -47,7 +49,8 @@ class DrawConsumer(AsyncWebsocketConsumer):
                     self.drawing = Drawing.objects.get(artist=self.artist, board=self.board)
                     self.end_index = self.drawing.end_index
                 except Drawing.DoesNotExist:
-                    print('woops')
+                    pass
+            await self.send_load_data()
             self.segment_coords = []
 
 
@@ -57,14 +60,15 @@ class DrawConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.add_user()
-        drawings = ut.get_drawings(self.board, self.user_id)
-        if drawings:
-            data = {
-                'note': 'load',
-                'drawings': drawings,
-                'set_connection_id': self.connection_id
-            }
-            await self.send_data(data)
+        if self.board:
+            drawings = ut.get_drawings(self.board, self.user_id)
+            if drawings:
+                data = {
+                    'note': 'load',
+                    'drawings': drawings,
+                    'set_connection_id': self.connection_id
+                }
+                await self.send_data(data)
 
 
     async def disconnect(self, close_code):
@@ -81,6 +85,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         data['connection_id'] = self.connection_id
         data['hash'] = self.hash
+        data['nickname'] = self.nickname
         if not self.artist:
             self.artist = ut.try_artist(self.user_id, self.nickname)
         if not self.board:
@@ -89,12 +94,12 @@ class DrawConsumer(AsyncWebsocketConsumer):
         if not self.drawing:
             self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
         if 'stroke_arr' in data:
-            if data['stroke_arr']:
+            if data['stroke_arr'] and data['type'] in ['draw', 'save']:
                 if not self.clear_allowed:
                     self.clear_allowed = True
                 self.segment_coords += data['stroke_arr'][0]
                 if data['type'] == 'save':
-                    await self.save(data)
+                    self.save(data)
                     data['type'] = 'draw'
                 await self.channel_layer.group_send(
                     self.room_group_name,
@@ -102,47 +107,22 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 )
             if data['type'] == 'clear':
                 if self.clear_allowed:
-                    self.clear()
+                    segments = self.drawing.segment_set.all()
+                    last = segments.last()
+                    if not last.clear:
+                        self.clear()
+                        data['type'] = 'draw'
+                        data['clear'] = True
+                        await self.channel_layer.group_send(
+                            self.room_group_name,
+                            data
+                        )
             if data['type'] == 'undo':
-                self.undo()
+                if self.undo():
+                    await self.redraw(data)
             if data['type'] == 'redo':
-                self.redo()
-
-
-    def clear(self):
-        if self.clear_allowed:
-            segments = self.drawing.segment_set.all()
-            last = segments.last()
-            if not last.clear:
-                self.clear_allowed = False
-                index = len(segments)
-                segment = Segment(
-                    drawing = self.drawing,
-                    clear = True,
-                    index = index
-                )
-                segment.save()
-                self.drawing.end_index = index
-                self.drawing.save()
-
-
-    def undo(self):
-        if self.drawing.end_index > -1:
-            self.drawing.end_index -= 1
-            self.drawing.save()
-
-
-    def redo(self):
-        last_index = len(self.drawing.segment_set.all())
-        if self.drawing.end_index < last_index:
-            self.drawing.end_index += 1
-            self.drawing.save()
-
-
-    # message to client, called data['type'] in receive()
-    async def draw(self, data):
-        if data['connection_id'] != self.connection_id:
-            await self.send(text_data=json.dumps(data))
+                if self.redo():
+                    await self.redraw(data)
 
 
     async def send_data(self, data):
@@ -150,17 +130,63 @@ class DrawConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(d))
 
 
-    async def save(self, data):
-        index = len(self.drawing.segment_set.all())
+    # message to client, called data['type'] in receive()
+    async def draw(self, data):
+        if data['connection_id'] != self.connection_id:
+            print('draw')
+            await self.send(text_data=json.dumps(data))
+
+
+    async def redraw(self, data):
+        data['type'] = 'draw'
+        data['redraw'] = True
+        data['segments'] = data.pop('stroke_arr')
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            data
+        )
+
+
+    def clear(self):
+        self.clear_allowed = False
+        self.drawing.end_index += 1
+        self.drawing.save()
+        segment = Segment(
+            drawing = self.drawing,
+            clear = True,
+            index = self.drawing.end_index
+        )
+        segment.save()
+
+
+    def undo(self, *args):
+        if self.drawing.end_index > -1:
+            self.drawing.end_index -= 1
+            self.drawing.save()
+            return True
+        return False
+
+
+    def redo(self, *args):
+        last_index = len(self.drawing.segment_set.all()) - 1
+        if self.drawing.end_index < last_index:
+            self.drawing.end_index += 1
+            self.drawing.save()
+            return True
+        return False
+
+
+    def save(self, data):
+        self.drawing.end_index += 1
+        self.drawing.save()
+        self.drawing.segment_set.filter(index__gte=self.drawing.end_index).delete()
         segment = Segment(
             drawing = self.drawing,
             color = data['stroke_color'],
             coords = self.segment_coords,
-            index = index
+            index = self.drawing.end_index
         )
         segment.save()
-        self.drawing.end_index = index
-        self.drawing.save()
         self.segment_coords = []
 
 

@@ -43,14 +43,14 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134', '192.168.1.124']
 
 INSTALLED_APPS = [
     'channels',
-    'labs',
-    'draw',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'labs',
+    'draw',
 ]
 
 MIDDLEWARE = [
@@ -66,11 +66,20 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'foli.urls'
 
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+    'apptemplates.Loader',
+)
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates')
+            os.path.join(BASE_DIR, 'templates'),
+            os.path.join(BASE_DIR, 'foli', 'templates'),
+            os.path.join(BASE_DIR, 'labs', 'templates'),
+            os.path.join(BASE_DIR, 'draw', 'templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -155,7 +164,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
-    os.path.join(BASE_DIR, 'draw/static')
+    os.path.join(BASE_DIR, 'foli/static'),
+    os.path.join(BASE_DIR, 'labs/static'),
+    os.path.join(BASE_DIR, 'draw/static'),
 )
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

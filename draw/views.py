@@ -2,6 +2,7 @@ from    django.http import HttpResponseRedirect
 from    django.shortcuts import render, redirect
 from    django.utils.safestring import mark_safe
 from    django.utils.text import slugify
+from    draw.utils import get_context
 from    foli.utils import random_string, random_phrase
 import  json
 import  re
@@ -47,24 +48,3 @@ def room(request, room_name):
     context['room_name'] = mark_safe(room_name)
     request.session['last_room_name'] = room_name
     return render(request, 'draw/draw.html', context)
-
-
-def get_context(request):
-    nickname = request.session.get('nickname')
-    if not nickname:
-        nickname = random_phrase('adj', 'noun')
-        request.session['nickname'] = nickname
-    user_id = request.session.get('user_id')
-    if not user_id or user_id != user_id.lower():
-        while True: # in the impossible event that the same id is generated twice (1 / 1.33675e+31)
-            user_id = random_string()
-            try:
-                artist = Artist.objects.get(user_id=user_id)
-            except Artist.DoesNotExist:
-                break
-        request.session['user_id'] = user_id
-    context = {
-        'user_id': mark_safe(user_id),
-        'nickname':  mark_safe(nickname)
-    }
-    return context

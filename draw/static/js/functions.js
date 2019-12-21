@@ -3,7 +3,41 @@ var groups = {};
 
 var loaded = false;
 
-function update_user_display(data) {
+var _drawing = {
+  segments: [],
+  end_index: -1
+};
+
+function parse_data(data) {
+  if (data.drawings) {
+    for (let drawing of data.drawings) {
+      if ('user_id' in drawing && drawing.user_id === user_id) {
+        _drawing = drawing;
+      }
+      draw_segments(drawing);
+    }
+  }
+  if (data.set_connection_id && connection_id === null) {
+    connection_id = data.set_connection_id;
+  }
+  if (data.stroke_arr) {
+    let ctx_id = create_board(data.nickname, data.hash);
+    draw_strokes(data.stroke_arr, data.stroke_color, remote_boards[ctx_id].ctx);
+  }
+  if (data.note) {
+    update_users(data);
+  }
+  if (data.clear) {
+    let ctx = remote_boards[data.nickname + '!' + data.hash].ctx;
+    ctx.clearRect(0, 0, board.width, board.height);
+  }
+  if (data.segments && data.redraw) {
+    draw_segments(data);
+  }
+}
+
+
+function update_users(data) {
   if (data.note === 'load') {
     groups = {};
     for (let drawing of data.drawings) {
@@ -30,67 +64,30 @@ function update_user_display(data) {
     }
   }
   if (data.note === 'connected') {
-
+    console.log('connected');
+    let main = '* * M A I N * *';
+    if (!(main in groups)) {
+      groups[main] = [];
+    }
+    let user = groups[main].filter(u => (u.hash === data.hash));
+    user = user.length ? user[0] : null;
+    if (!user) {
+      user = {
+        nickname: data.nickname,
+        hash: data.hash,
+        display: 'inherit'
+      };
+      groups[main].push(user);
+    };
+    if (data.hash !== user_id.substr(0, 12)) {
+      create_board(data.nickname, data.hash);
+    }
   }
   if (data.note === 'update') {
 
   }
   if (data.note === 'disconnected') {
 
-  }
-}
-
-
-function build_group_elems(group, group_name, tbody) {
-  let group_header_tr = el('tr', '', 'bg-secondary', {}, tbody);
-  el(
-    'button', '&#9634;', 'btn btn-dark btn-outline-secondary text-light',
-    {
-      'data-group': group_name,
-      'data-toggle': 'tooltip',
-      'data-display': 'inherit',
-      'data-placement': 'top',
-      title: '(un)minimize group'
-    },
-    el('td', '', '', {}, group_header_tr)
-  ).onclick = toggle_minimize;
-  el('td', group_name, 'text-right', {colspan: 2}, group_header_tr);
-  el(
-    'button', '&nbsp;o&nbsp;', 'btn btn-outline-secondary btn-dark text-light btn-toggle-group',
-    {
-      'data-group': group_name,
-      'data-display': 'inherit',
-      'data-toggle': 'tooltip',
-      'data-placement': 'top',
-      title: 'show/hide group\'s drawings'
-    },
-    el('td', '', '', {}, group_header_tr)
-  ).onclick = toggle_group;
-  for (let user of group) {
-    let user_tr = el(
-      'tr', '',
-      `user-${user.hash}${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
-      {
-        'data-group': group_name
-      },
-      tbody
-    );
-    el('td', '', 'status', {}, user_tr);
-    el('td', user.nickname, 'nickname', {}, user_tr);
-    el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger bd-dark', {}, el('td', '', '', {}, user_tr));
-    el(
-      'button', '&nbsp;o&nbsp;',
-      `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,
-      {
-        'data-hash': user.hash,
-        'data-group': group_name,
-        'data-display': 'inherit',
-        'data-toggle': 'tooltip',
-        'data-placement': 'top',
-        title: 'show/hide user\'s drawings'
-      },
-      el('td', '', '', {}, user_tr)
-    ).onclick = toggle_user;
   }
 }
 
@@ -110,6 +107,65 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
     }
   }
   return elem;
+}
+
+
+function build_group_elems(group, group_name, tbody) {
+  let group_header_tr = el('tr', '', 'bg-secondary', {}, tbody);
+  el(
+    'button', '&#9634;', 'btn btn-dark btn-outline-secondary text-light',
+    {
+      'data-group': group_name,
+      'data-toggle': 'tooltip',
+      'data-display': 'inherit',
+      'data-placement': 'top',
+      title: 'toggle group user names'
+    },
+    el('td', '', '', {}, group_header_tr)
+  ).onclick = toggle_minimize;
+  el('td', group_name, 'text-right', {colspan: 2}, group_header_tr);
+  el(
+    'button', '&nbsp;o&nbsp;', 'btn btn-outline-secondary btn-dark text-light btn-toggle-group',
+    {
+      'data-group': group_name,
+      'data-display': 'inherit',
+      'data-toggle': 'tooltip',
+      'data-placement': 'top',
+      title: 'toggle group drawings'
+    },
+    el('td', '', '', {}, group_header_tr)
+  ).onclick = toggle_group;
+  for (let user of group) {
+    build_user_elems(user, group_name, tbody);
+  }
+}
+
+
+function build_user_elems(user, group_name, tbody) {
+  let user_tr = el(
+    'tr', '',
+    `user-${user.hash}${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
+    {
+      'data-group': group_name
+    },
+    tbody
+  );
+  el('td', '', 'status', {}, user_tr);
+  el('td', user.nickname, 'nickname', {}, user_tr);
+  el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger bd-dark', {}, el('td', '', '', {}, user_tr));
+  el(
+    'button', '&nbsp;o&nbsp;',
+    `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,
+    {
+      'data-hash': user.hash,
+      'data-group': group_name,
+      'data-display': 'inherit',
+      'data-toggle': 'tooltip',
+      'data-placement': 'top',
+      title: 'toggle user\'s drawings'
+    },
+    el('td', '', '', {}, user_tr)
+  ).onclick = toggle_user;
 }
 
 
@@ -173,4 +229,22 @@ function toggle_btn(btn, display=null, a='o', b='&oslash;', c='&nbsp;', v='block
   }
   btn.innerHTML = c + (display === 'none' ? b : a) + c;
   return display;
+}
+
+
+function create_board(nickname, hash) {
+  let ctx_id = nickname + '!' + hash;
+  let dict
+  if (!(ctx_id in remote_boards)) {
+    let board = el(
+      'canvas', '', 'board-remote', {height: '4096px', width: '4096px', 'id': 'board-' + hash}, board_wrapper
+    );
+    let ctx = board.getContext('2d');
+    let dict = {
+      board: board,
+      ctx: ctx
+    };
+    remote_boards[ctx_id] = dict;
+  }
+  return ctx_id;
 }

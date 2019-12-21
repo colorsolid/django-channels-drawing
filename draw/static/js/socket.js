@@ -1,9 +1,3 @@
-var _drawing = {
-  segments: [],
-  start_index: 0,
-  end_index: 0
-};
-
 
 //----------------------------------------------------------------------------------------- >
 // S O C K E T ---------------------------------------------------------------------------- >
@@ -39,27 +33,7 @@ function start_socket() {
   socket.onmessage = function(e) {
     let data = JSON.parse(e.data);
     console.log('message data', data);
-    if (data.drawings) {
-      for (let drawing of data.drawings) {
-        if ('user_id' in drawing && drawing.user_id === user_id) {
-          _drawing = drawing;
-        }
-        draw_segments(drawing);
-      }
-    }
-    if (data.set_connection_id && connection_id === null) {
-      connection_id = data.set_connection_id;
-    }
-    if (data.stroke_arr) {
-      let ctx_id = data.nickname + '!' + data.hash;
-      if (!(ctx_id in remote_boards)) {
-        remote_boards[ctx_id] = new_board(data.hash);
-      }
-      draw_strokes(data.stroke_arr, data.stroke_color, remote_boards[ctx_id].ctx);
-    }
-    if (data.note) {
-      update_user_display(data);
-    }
+    parse_data(data);
   }
   return socket;
 }

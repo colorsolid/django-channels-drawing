@@ -25,7 +25,7 @@ class DrawingBoardForm(forms.ModelForm):
         if len(username) < 5:
             self._errors['username'] = self.error_class([
                 'Minimum 5 characters required'])
-        if len(text) <10:
+        if len(text) < 10:
             self._errors['text'] = self.error_class([
                 'Post Should Contain minimum 10 characters'])
         return self.cleaned_data

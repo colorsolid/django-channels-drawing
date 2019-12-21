@@ -32,6 +32,8 @@ var rect = board.getBoundingClientRect();
 var draw_enabled = true;
 var move_enabled = false;
 
+board_wrapper.style.cursor = 'crosshair';
+
 board_wrapper.style.height = (window.innerHeight) + 'px';
 window.onresize = function() {
   board_wrapper.style.height = (window.innerHeight) + 'px';
@@ -69,9 +71,7 @@ var y_offset = Math.round(-2048 + (window.innerHeight / 2));
 var clicked = false;
 var line_draw = false;
 
-//board.addEventListener('mousedown', click);
 board_wrapper.onmousedown = click;
-//board.addEventListener('touchstart', click);
 board_wrapper.ontouchstart = click;
 
 function click(event) {
@@ -151,6 +151,7 @@ function unclick() {
         thickness: ctx.lineWidth
       };
       _drawing.segments.push(stroke_data);
+      _drawing.end_index += 1;
       stroke_arr.push(stroke);
       stroke = [];
     }
@@ -186,53 +187,53 @@ btn_move_toggle.onclick = toggle_modes;
 btn_draw_toggle.onclick = toggle_modes;
 
 function toggle_modes() {
-  toggle_move_mode();
-  toggle_draw_mode();
-}
-
-function toggle_move_mode() {
-  let btn = btn_move_toggle;
-  btn.dataset.move = (!(btn.dataset.move === 'true')).toString();
-  btn.classList.toggle('btn-success');
-  btn.classList.toggle('btn-dark');
-  move_enabled = draw_enabled;
-}
-
-function toggle_draw_mode() {
-  let btn = btn_draw_toggle;
-  btn.dataset.draw = (!(btn.dataset.draw === 'true')).toString();
-  btn.classList.toggle('btn-success');
-  btn.classList.toggle('btn-dark');
-  draw_enabled = !move_enabled;
+  let btns = [
+    [btn_move_toggle, 'move', 'grab'],
+    [btn_draw_toggle, 'draw', 'crosshair']
+  ];
+  for (let group of btns) {
+    let [btn, prop, cursor] = group;
+    let bool = (!(btn.dataset[prop] === 'true'));
+    btn.dataset[prop] = bool.toString();
+    if (bool) board_wrapper.style.cursor = cursor;
+    btn.classList.toggle('btn-success');
+    btn.classList.toggle('btn-dark');
+  }
+  move_enabled = (btn_move_toggle.dataset.move === 'true');
+  draw_enabled = (btn_draw_toggle.dataset.draw === 'true');
 }
 
 var btn_undo = document.getElementById('btn-undo');
 btn_undo.onclick = function() {
+  let segments = null;
   if (_drawing.end_index > -1) {
     _drawing.end_index -= 1;
-    draw_segments(_drawing);
+    segments = draw_segments(_drawing);
   }
-  send_draw_data(null, 'undo');
+  send_draw_data(segments, 'undo');
 }
 
 var btn_redo = document.getElementById('btn-redo');
 btn_redo.onclick = function() {
-  if (_drawing.end_index < _drawing.segments.length) {
+  let segments = null;
+  if (_drawing.end_index < _drawing.segments.length - 1) {
     _drawing.end_index += 1;
-    draw_segments(_drawing);
+    segments = draw_segments(_drawing);
   }
-  send_draw_data(null, 'redo');
+  send_draw_data(segments, 'redo');
 }
 
 var btn_clear = document.getElementById('btn-clear');
 btn_clear.onclick = function() {
+  _drawing.segments.push('CLEAR');
+  _drawing.end_index += 1;
   ctx.clearRect(0, 0, board.width, board.height);
   send_draw_data(null, 'clear');
 }
 
 
 //----------------------------------------------------------------------------------------- >
-// M I S C -------------------------------------------------------------------------------- >
+// D R A W -------------------------------------------------------------------------------- >
 //----------------------------------------------------------------------------------------- >
 
 
@@ -253,20 +254,26 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
   }
 }
 
+
 function draw_segments(drawing) {
+  console.log(drawing);
   let _ctx;
   let segments = drawing.segments;
   if (drawing.hash === user_id.substr(0, 12)) _ctx = ctx;
   else {
-    let ctx_id = drawing.nickname + '!' + drawing.hash;
-    if (!(ctx_id in remote_boards)) remote_boards[ctx_id] = new_board(drawing.hash);
+    let ctx_id = create_board(drawing.nickname, drawing.hash);
     _ctx = remote_boards[ctx_id].ctx;
   }
   _ctx.clearRect(0, 0, board.width, board.height);
-  segments = segments.slice(0, drawing.end_index + 1);
-  let start_index = segments.lastIndexOf('CLEAR');
-  if (start_index > 0) {
-    segments = segments.slice(start_index);
+  if (drawing.end_index !== undefined) {
+    segments = segments.slice(0, drawing.end_index + 1);
+    let start_index = segments.lastIndexOf('CLEAR');
+    if (start_index > 0) {
+      segments = segments.slice(start_index);
+    }
+  }
+  if (drawing.redraw) {
+    _ctx.clearRect(0, 0, board.width, board.height);
   }
   for (let segment of segments) {
     if (segment !== 'CLEAR') {
@@ -274,18 +281,6 @@ function draw_segments(drawing) {
     }
   }
   return segments;
-}
-
-function new_board(hash) {
-  let board = el(
-    'canvas', '', 'board-remote', {height: '4096px', width: '4096px', 'id': 'board-' + hash}, board_wrapper
-  );
-  let ctx = board.getContext('2d');
-  let dict = {
-    board: board,
-    ctx: ctx
-  };
-  return dict;
 }
 
 
