@@ -2,3 +2,4 @@
 staticfiles/
 dump.rdb
 __pycache__/
+migrations/
