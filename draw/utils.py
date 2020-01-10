@@ -1,4 +1,5 @@
 from    django.utils.safestring import mark_safe
+from    foli.utils import random_phrase, random_string
 from    .models import DrawingBoard, Artist, Drawing, Segment
 
 
@@ -9,7 +10,7 @@ def get_context(request):
         request.session['nickname'] = nickname
     user_id = request.session.get('user_id')
     if not user_id or user_id != user_id.lower():
-        while True: # in the impossible event that the same id is generated twice (1 / 1.33675e+31)
+        while True:
             user_id = random_string()
             try:
                 artist = Artist.objects.get(user_id=user_id)

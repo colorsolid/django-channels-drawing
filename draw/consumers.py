@@ -55,20 +55,31 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def send_load_data(self):
+        print('load')
+        users = self.channel_layer.user_list[self.room_name]
+        _users = []
+        for user in users:
+            _user = {
+                'nickname': user['nickname'],
+                'hash': user['user_id'][0:12],
+                'group': '* * M A I N * *'
+            }
+            _users.append(_user)
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.add_user()
+        data = {
+            'note': 'load',
+            'set_connection_id': self.connection_id,
+            'users': _users
+        }
         if self.board:
             drawings = ut.get_drawings(self.board, self.user_id)
             if drawings:
-                data = {
-                    'note': 'load',
-                    'drawings': drawings,
-                    'set_connection_id': self.connection_id
-                }
-                await self.send_data(data)
+                data['drawings'] = drawings
+        await self.send_data_no_type(data)
 
 
     async def disconnect(self, close_code):
@@ -125,7 +136,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                     await self.redraw(data)
 
 
-    async def send_data(self, data):
+    async def send_data_no_type(self, data):
         d = {k:data[k] for k in data if k !='type'}
         await self.send(text_data=json.dumps(d))
 
@@ -201,7 +212,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                     'hash': self.hash,
                     'nickname': self.nickname,
                     'old_nickname': user['nickname'],
-                    'type': 'send_data'
+                    'type': 'send_data_no_type'
                 }
                 user_list[i]['nickname'] = self.nickname
             user_list[i]['connection_ids'].append(self.connection_id)
@@ -219,7 +230,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 'note': 'connected',
                 'connection_id': self.connection_id,
                 'hash': self.hash,
-                'type': 'send_data'
+                'type': 'send_data_no_type'
             })
         if channel_data:
             await self.channel_layer.group_send(
@@ -241,7 +252,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
-                        'type': 'send_data',
+                        'type': 'send_data_no_type',
                         'note': 'disconnected',
                         'nickname': self.nickname,
                         'hash': self.hash

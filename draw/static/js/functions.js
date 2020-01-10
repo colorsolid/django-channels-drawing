@@ -39,7 +39,23 @@ function parse_data(data) {
 
 function update_users(data) {
   if (data.note === 'load') {
-    groups = {};
+    user_load(data);
+  }
+  if (data.note === 'connected') {
+    user_connect(data);
+  }
+  if (data.note === 'update') {
+
+  }
+  if (data.note === 'disconnected') {
+
+  }
+}
+
+function user_load(data) {
+  console.log('loaded')
+  groups = {};
+  if (data.drawings) {
     for (let drawing of data.drawings) {
       let hash = drawing.hash;
       let nickname = drawing.nickname;
@@ -60,34 +76,56 @@ function update_users(data) {
     let tbody = el('tbody', '', '', {}, user_display);
     for (let group_name of group_names) {
       groups[group_name].sort((a, b) => (a.nickname > b.nickname));
-      build_group_elems(groups[group_name], group_name, tbody);
+      build_group_elements(group_name, tbody);
     }
   }
-  if (data.note === 'connected') {
-    console.log('connected');
-    let main = '* * M A I N * *';
-    if (!(main in groups)) {
-      groups[main] = [];
+}
+
+function get_tbody() {
+
+}
+
+function user_connect(data) {
+  console.log('connected', data);
+  let new_group = false;
+  let main = '* * M A I N * *';
+  let group_tbodies = [].slice.call(document.getElementsByClassName('user-group'));
+  let tbody;
+  console.log(groups, group_tbodies);
+  if (!(main in groups)) {
+    console.log('new tbody')
+    tbody = el('tbody', '', 'user-group', {'data-group': main}, user_display);
+    groups[main] = [];
+    new_group = true;
+  }
+  else {
+    for (let _tbody of group_tbodies) {
+      console.log(_tbody)
+      if (_tbody.dataset.group === main) {
+        tbody = _tbody;
+      }
     }
+  }
+  console.log(tbody);
+  if (tbody !== undefined) {
     let user = groups[main].filter(u => (u.hash === data.hash));
     user = user.length ? user[0] : null;
-    if (!user) {
+    if (user === null) {
       user = {
         nickname: data.nickname,
-        hash: data.hash,
-        display: 'inherit'
+        hash: data.hash
       };
       groups[main].push(user);
+      if (new_group) {
+        build_group_elements(main, tbody);
+      }
+      else {
+        build_user_elements(user, main, tbody);
+      }
     };
     if (data.hash !== user_id.substr(0, 12)) {
       create_board(data.nickname, data.hash);
     }
-  }
-  if (data.note === 'update') {
-
-  }
-  if (data.note === 'disconnected') {
-
   }
 }
 
@@ -95,7 +133,7 @@ function update_users(data) {
 function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=true, before_index=0) {
   let elem = document.createElement(type);
   elem.innerHTML = inner;
-  elem.className = classname;
+  if (classname.length) elem.className = classname;
   let attr_keys = Object.keys(attrs);
   for (let key of attr_keys) elem.setAttribute(key, attrs[key]);
   if (parent) {
@@ -110,62 +148,72 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
 }
 
 
-function build_group_elems(group, group_name, tbody) {
-  let group_header_tr = el('tr', '', 'bg-secondary', {}, tbody);
-  el(
-    'button', '&#9634;', 'btn btn-dark btn-outline-secondary text-light',
-    {
-      'data-group': group_name,
-      'data-toggle': 'tooltip',
-      'data-display': 'inherit',
-      'data-placement': 'top',
-      title: 'toggle group user names'
-    },
-    el('td', '', '', {}, group_header_tr)
-  ).onclick = toggle_minimize;
-  el('td', group_name, 'text-right', {colspan: 2}, group_header_tr);
-  el(
-    'button', '&nbsp;o&nbsp;', 'btn btn-outline-secondary btn-dark text-light btn-toggle-group',
-    {
-      'data-group': group_name,
-      'data-display': 'inherit',
-      'data-toggle': 'tooltip',
-      'data-placement': 'top',
-      title: 'toggle group drawings'
-    },
-    el('td', '', '', {}, group_header_tr)
-  ).onclick = toggle_group;
-  for (let user of group) {
-    build_user_elems(user, group_name, tbody);
+function build_group_elements(group_name, tbody) {
+  let group = groups[group_name];
+  let group_header_id = 'group-header-' + group_name;
+  let group_header_tr = document.getElementById(group_header_id);
+  if (group_header_tr === null) {
+    group_header_tr = el('tr', '', 'bg-secondary', {'id': group_header_id}, tbody);
+    el(
+      'button', '&#9634;', 'btn btn-dark btn-outline-secondary text-light',
+      {
+        'data-group': group_name,
+        'data-toggle': 'tooltip',
+        'data-display': 'inherit',
+        'data-placement': 'top',
+        title: 'toggle group user names'
+      },
+      el('td', '', '', {}, group_header_tr);
+    ).onclick = toggle_minimize;
+    el('td', group_name, 'text-right', {colspan: 2}, group_header_tr);
+    el(
+      'button', '&nbsp;o&nbsp;', 'btn btn-outline-secondary btn-dark text-light btn-toggle-group',
+      {
+        'data-group': group_name,
+        'data-display': 'inherit',
+        'data-toggle': 'tooltip',
+        'data-placement': 'top',
+        title: 'toggle group drawings'
+      },
+      el('td', '', '', {}, group_header_tr);
+    ).onclick = toggle_group;
+    for (let user of group) {
+      build_user_elements(user, group_name, tbody);
+    }
   }
 }
 
 
-function build_user_elems(user, group_name, tbody) {
-  let user_tr = el(
-    'tr', '',
-    `user-${user.hash}${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
-    {
-      'data-group': group_name
-    },
-    tbody
-  );
-  el('td', '', 'status', {}, user_tr);
-  el('td', user.nickname, 'nickname', {}, user_tr);
-  el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger bd-dark', {}, el('td', '', '', {}, user_tr));
-  el(
-    'button', '&nbsp;o&nbsp;',
-    `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,
-    {
-      'data-hash': user.hash,
-      'data-group': group_name,
-      'data-display': 'inherit',
-      'data-toggle': 'tooltip',
-      'data-placement': 'top',
-      title: 'toggle user\'s drawings'
-    },
-    el('td', '', '', {}, user_tr)
-  ).onclick = toggle_user;
+function build_user_elements(user, group_name, tbody) {
+  let user_display_id = `user-display-${user.hash}`;
+  let user_tr = document.getElementById(user_display_id);
+  if (user_tr === null) {
+    user_tr = el(
+      'tr', '',
+      `${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
+      {
+        'id': `user-display-${user.hash}`,
+        'data-group': group_name
+      },
+      tbody
+    );
+    el('td', '', 'status', {}, user_tr);
+    el('td', user.nickname, 'nickname', {}, user_tr);
+    el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger bd-dark', {}, el('td', '', '', {}, user_tr));
+    el(
+      'button', '&nbsp;o&nbsp;',
+      `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,
+      {
+        'data-hash': user.hash,
+        'data-group': group_name,
+        'data-display': 'inherit',
+        'data-toggle': 'tooltip',
+        'data-placement': 'top',
+        title: 'toggle user\'s drawings'
+      },
+      el('td', '', '', {}, user_tr)
+    ).onclick = toggle_user;
+  }
 }
 
 

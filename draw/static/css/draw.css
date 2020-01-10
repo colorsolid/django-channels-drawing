@@ -35,6 +35,7 @@ body {
 #pos {
   border-radius: 5px;
   border: 1px solid #0d0e0f;
+  min-width: 288px;
 }
 
 .user-self {
