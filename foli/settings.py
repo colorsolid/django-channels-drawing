@@ -36,7 +36,7 @@ SECRET_KEY = env('SECRET_KEY')
 
 DEBUG = (env('DEBUG') == 'True')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134', '192.168.1.124']
 
 
 # Application definition
@@ -159,3 +159,8 @@ STATICFILES_DIRS = (
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 django_heroku.settings(locals())
+
+#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#SECURE_SSL_REDIRECT = True
+#SESSION_COOKIE_SECURE = True
+#CSRF_COOKIE_SECURE = True

@@ -1,1 +1,5 @@
 .env
+staticfiles/
+__pycache__/
+dump.rdb
+migrations/

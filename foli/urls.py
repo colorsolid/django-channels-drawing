@@ -22,3 +22,4 @@ urlpatterns = [
     path('draw/', include('draw.urls')),
     path('admin/', admin.site.urls)
 ]
+

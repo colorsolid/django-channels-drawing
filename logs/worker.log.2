@@ -1,0 +1,52 @@
+Traceback (most recent call last):
+  File "/home/jordan/foli/foli/manage.py", line 21, in <module>
+    main()
+  File "/home/jordan/foli/foli/manage.py", line 17, in main
+    execute_from_command_line(sys.argv)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/django/core/management/__init__.py", line 381, in execute_from_command_line
+    utility.execute()
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/django/core/management/__init__.py", line 375, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/django/core/management/base.py", line 323, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/django/core/management/base.py", line 364, in execute
+    output = self.handle(*args, **options)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels/management/commands/runworker.py", line 46, in handle
+    worker.run()
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/asgiref/server.py", line 60, in run
+    event_loop.run_until_complete(self.handle())
+  File "/usr/lib/python3.6/asyncio/base_events.py", line 484, in run_until_complete
+    return future.result()
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels/worker.py", line 30, in handle
+    [listener.result() for listener in listeners]
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels/worker.py", line 30, in <listcomp>
+    [listener.result() for listener in listeners]
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels/worker.py", line 37, in listener
+    message = await self.channel_layer.receive(channel)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels_redis/core.py", line 461, in receive
+    return (await self.receive_single(channel))[1]
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels_redis/core.py", line 484, in receive_single
+    index, channel_key, timeout=self.brpop_timeout
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels_redis/core.py", line 324, in _brpop_with_clean
+    async with self.connection(index) as connection:
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels_redis/core.py", line 820, in __aenter__
+    self.conn = await self.pool.pop()
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/channels_redis/core.py", line 70, in pop
+    conns.append(await aioredis.create_redis(**self.host, loop=loop))
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/aioredis/commands/__init__.py", line 175, in create_redis
+    loop=loop)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/aioredis/connection.py", line 108, in create_connection
+    timeout, loop=loop)
+  File "/usr/lib/python3.6/asyncio/tasks.py", line 339, in wait_for
+    return (yield from fut)
+  File "/home/jordan/foli/env/lib/python3.6/site-packages/aioredis/stream.py", line 19, in open_connection
+    lambda: protocol, host, port, **kwds)
+  File "/usr/lib/python3.6/asyncio/base_events.py", line 794, in create_connection
+    raise exceptions[0]
+  File "/usr/lib/python3.6/asyncio/base_events.py", line 781, in create_connection
+    yield from self.sock_connect(sock, address)
+  File "/usr/lib/python3.6/asyncio/selector_events.py", line 439, in sock_connect
+    return (yield from fut)
+  File "/usr/lib/python3.6/asyncio/selector_events.py", line 469, in _sock_connect_cb
+    raise OSError(err, 'Connect call failed %s' % (address,))
+ConnectionRefusedError: [Errno 111] Connect call failed ('127.0.0.1', 6379)
