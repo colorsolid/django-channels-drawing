@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
-import django_heroku
 from decouple import config
 import os
 
@@ -169,5 +168,3 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'draw/static'),
 )
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-django_heroku.settings(locals())
