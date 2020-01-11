@@ -19,10 +19,10 @@
       </span>
         <div class="mb-1">
           <div>
-            <button class="btn btn-small btn-dark bd-dark" id="btn-move-toggle" data-move="false">
+            <button class="btn btn-small btn-success bd-dark" id="btn-move-toggle" data-move="true">
               &#128220;&#128274;
             </button>
-            <button class="btn btn-small btn-success bd-dark" id="btn-draw-toggle" data-draw="true">
+            <button class="btn btn-small btn-dark bd-dark" id="btn-draw-toggle" data-draw="false">
               &#9998;
             </button>
             <button class="btn btn-primary bd-dark" data-toggle="collapse" data-target="#collapse-extra-options" aria-expanded="false" aria-controls="collapse-extra-options">
@@ -50,7 +50,9 @@
           </div>
           <div class="mt-1 mb-1 bg-dark text-center" id="user-list-wrapper">
             <h5>Users</h5>
-            <table class="table text-light" id="user-list"></table>
+            <table class="table text-light" id="user-list">
+              <tbody></tbody>
+            </table>
           </div>
         </div>
     </div>

@@ -51,7 +51,7 @@ body {
 }
 
 #user-list-wrapper {
-  max-height: 300px;
+  max-height: 10%;
   overflow-y: scroll;
   border-radius: 5px;
   border: 1px solid #0d0e0f;

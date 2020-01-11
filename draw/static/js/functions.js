@@ -1,4 +1,4 @@
-const user_display = document.getElementById('user-list');
+const user_display = document.querySelector('#user-list tbody');
 var groups = {};
 
 var loaded = false;
@@ -7,6 +7,8 @@ var _drawing = {
   segments: [],
   end_index: -1
 };
+
+
 
 function parse_data(data) {
   if (data.drawings) {
@@ -52,9 +54,10 @@ function update_users(data) {
   }
 }
 
+
 function user_load(data) {
   console.log('loaded')
-  groups = {};
+  groups = {}; // reconnect
   if (data.drawings) {
     for (let drawing of data.drawings) {
       let hash = drawing.hash;
@@ -66,66 +69,52 @@ function user_load(data) {
       let user = {
         nickname: nickname,
         hash: hash,
-        display: 'inherit'
+        display: 'inherit',
+        group_name: group_name
       };
       groups[group_name].push(user);
     }
     let group_names = Object.keys(groups);
     group_names.sort();
-    user_display.innerHTML = '';
-    let tbody = el('tbody', '', '', {}, user_display);
     for (let group_name of group_names) {
       groups[group_name].sort((a, b) => (a.nickname > b.nickname));
-      build_group_elements(group_name, tbody);
+      build_group_elements(group_name);
+    }
+  }
+  if (data.users) {
+    for (let user of data.users) {
+      build_group_elements(user.group);
+      build_user_elements(user, user.group);
     }
   }
 }
 
-function get_tbody() {
-
-}
 
 function user_connect(data) {
   console.log('connected', data);
   let new_group = false;
-  let main = '* * M A I N * *';
-  let group_tbodies = [].slice.call(document.getElementsByClassName('user-group'));
-  let tbody;
-  console.log(groups, group_tbodies);
-  if (!(main in groups)) {
-    console.log('new tbody')
-    tbody = el('tbody', '', 'user-group', {'data-group': main}, user_display);
-    groups[main] = [];
+  let group_name = '* * M A I N * *';
+  if (!(group_name in groups)) {
+    groups[group_name] = [];
     new_group = true;
   }
-  else {
-    for (let _tbody of group_tbodies) {
-      console.log(_tbody)
-      if (_tbody.dataset.group === main) {
-        tbody = _tbody;
-      }
-    }
-  }
-  console.log(tbody);
-  if (tbody !== undefined) {
-    let user = groups[main].filter(u => (u.hash === data.hash));
-    user = user.length ? user[0] : null;
-    if (user === null) {
-      user = {
-        nickname: data.nickname,
-        hash: data.hash
-      };
-      groups[main].push(user);
-      if (new_group) {
-        build_group_elements(main, tbody);
-      }
-      else {
-        build_user_elements(user, main, tbody);
-      }
+  let user = groups[group_name].filter(u => (u.hash === data.hash));
+  user = user.length ? user[0] : null;
+  console.log('u', user, new_group);
+  if (user === null) {
+    user = {
+      nickname: data.nickname,
+      hash: data.hash
     };
-    if (data.hash !== user_id.substr(0, 12)) {
-      create_board(data.nickname, data.hash);
+    groups[group_name].push(user);
+    groups[group_name].sort((a, b) => (a.nickname + a.hash > b.nickname + b.hash));
+    if (new_group) {
+      build_group_elements(group_name);
     }
+    build_user_elements(user, group_name);
+  }
+  if (data.hash !== user_id.substr(0, 12)) {
+    create_board(data.nickname, data.hash);
   }
 }
 
@@ -139,21 +128,27 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
   if (parent) {
     if (pos_end) parent.appendChild(elem);
     else {
-      if (parent.childNodes.length - 1 < before_index) before_index = childNodex.length - 1;
       let rel_elem = parent.childNodes[before_index];
-      parent.insertBefore(elem, rel_elem);
+      if (rel_elem) {
+        parent.insertBefore(elem, rel_elem);
+      }
+      else {
+        parent.appendChild(elem);
+      }
     }
   }
   return elem;
 }
 
 
-function build_group_elements(group_name, tbody) {
+function build_group_elements(group_name) {
   let group = groups[group_name];
-  let group_header_id = 'group-header-' + group_name;
-  let group_header_tr = document.getElementById(group_header_id);
+  console.log('group', group);
+  let headers = [].slice.call(user_display.getElementsByClassName('group-header'));
+  headers = headers.filter(a => (a.dataset.group_name === group_name));
+  let group_header_tr = headers.length ? headers[0] : null;
   if (group_header_tr === null) {
-    group_header_tr = el('tr', '', 'bg-secondary', {'id': group_header_id}, tbody);
+    group_header_tr = el('tr', '', 'bg-secondary group-header', {'data-group_name': group_name}, user_display);
     el(
       'button', '&#9634;', 'btn btn-dark btn-outline-secondary text-light',
       {
@@ -163,7 +158,7 @@ function build_group_elements(group_name, tbody) {
         'data-placement': 'top',
         title: 'toggle group user names'
       },
-      el('td', '', '', {}, group_header_tr);
+      el('td', '', '', {}, group_header_tr)
     ).onclick = toggle_minimize;
     el('td', group_name, 'text-right', {colspan: 2}, group_header_tr);
     el(
@@ -175,16 +170,18 @@ function build_group_elements(group_name, tbody) {
         'data-placement': 'top',
         title: 'toggle group drawings'
       },
-      el('td', '', '', {}, group_header_tr);
+      el('td', '', '', {}, group_header_tr)
     ).onclick = toggle_group;
-    for (let user of group) {
-      build_user_elements(user, group_name, tbody);
+    if (group) {
+      for (let user of group) {
+        build_user_elements(user, group_name);
+      }
     }
   }
 }
 
 
-function build_user_elements(user, group_name, tbody) {
+function build_user_elements(user, group_name) {
   let user_display_id = `user-display-${user.hash}`;
   let user_tr = document.getElementById(user_display_id);
   if (user_tr === null) {
@@ -193,9 +190,11 @@ function build_user_elements(user, group_name, tbody) {
       `${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
       {
         'id': `user-display-${user.hash}`,
-        'data-group': group_name
+        'data-group': group_name,
+        'data-nickname': user.nickname,
+        'data-hash': user.hash
       },
-      tbody
+      user_display, false, find_index(user)
     );
     el('td', '', 'status', {}, user_tr);
     el('td', user.nickname, 'nickname', {}, user_tr);
@@ -214,6 +213,30 @@ function build_user_elements(user, group_name, tbody) {
       el('td', '', '', {}, user_tr)
     ).onclick = toggle_user;
   }
+}
+
+
+function find_index(user) {
+  let rows = user_display.childNodes;
+  let flat_rows = [];
+  for (let row of rows) {
+    if (row.classList.contains('group-header')) {
+      flat_rows.push(row.dataset.group_name);
+    }
+    else if (row.classList.contains('user-row')) {
+      flat_rows.push(row.dataset.group + row.dataset.nickname + row.dataset.hash);
+    }
+  }
+  let group_name = 'group_name' in user ? user.group_name : '* * M A I N * *';
+  let user_flat = group_name + user.nickname + user.hash;
+  flat_rows.push(user_flat);
+  flat_rows.sort();
+  let index = flat_rows.indexOf(user_flat);
+  console.log(user);
+  console.log(flat_rows);
+  console.log(rows);
+  console.log(user.nickname + ' ' + index);
+  return index;
 }
 
 

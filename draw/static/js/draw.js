@@ -29,10 +29,10 @@ color_btns.forEach(btn => {
 
 var rect = board.getBoundingClientRect();
 
-var draw_enabled = true;
-var move_enabled = false;
+var draw_enabled = false;
+var move_enabled = true;
 
-board_wrapper.style.cursor = 'crosshair';
+board_wrapper.style.cursor = 'grab';
 
 board_wrapper.style.height = (window.innerHeight) + 'px';
 window.onresize = function() {
@@ -150,6 +150,9 @@ function unclick() {
         coords: stroke,
         thickness: ctx.lineWidth
       };
+      if (_drawing.segments.length - 1 > _drawing.end_index) {
+        _drawing.segments = _drawing.segments.slice(0, _drawing.end_index + 1);
+      }
       _drawing.segments.push(stroke_data);
       _drawing.end_index += 1;
       stroke_arr.push(stroke);
