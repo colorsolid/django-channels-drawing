@@ -2,6 +2,8 @@
 
 {% load staticfiles %}
 
+{% load tz %}
+
 {% block subtitle %} > Drawing Lobby{% endblock %}
 
 {% block head_extend %}
@@ -11,7 +13,7 @@
 
 {% block content_labs %}
   <div class="row">
-    <div class="col-xl-4 col-lg-4 col-md-2 col-xs-0"></div>
+    <div class="col-xl-4 col-lg-3 col-md-2 col-xs-0"></div>
     <div class="col-xl-4 col-lg-6 col-md-8 col-xs-12">
       <h3 class="text-light">Create or join a drawing room</h3>
       <form action="{% url 'lobby' %}" method="POST" class="post-form">{% csrf_token %}
@@ -53,6 +55,35 @@
       {# <button id="room-submit" class="btn btn-block btn-primary">Create room</button> #}
     </div>
     <div class="col-sm-4 col-sm-0"></div>
+  </div>
+  <div class="row">
+    <div class="col-xl-1"></div>
+    <div class="col-xl-10 border-top border-dark mt-3">
+      <h3 class="mt-1 text-light">Recently edited rooms</h3>
+      <div id="room-browse">
+        <div class="row">
+          <div class="col-xl-1 col-m-0"></div>
+          {% for room in rooms %}
+            {% if forloop.counter|divisibleby:6 %}
+              <div class="col-xl-1 col-m-0"></div>
+            {% endif %}
+            <div class="col-xl-2 col-m-12">
+              <a class="btn btn-primary btn-small w-100 overflow-hidden mb-1" href="/draw/{{ room.room_name }}">
+                <h4>
+                  {{ room.room_name }}
+                </h4>
+                Created by: <br><div class="mt-2 badge badge-dark">{{ room.creator_nickname }}#{{ room.creator_hash|slice:'0:4' }}</div>
+              </a>
+            </div>
+            {% if forloop.counter|divisibleby:5 %}
+              <div class="col-xl-1"></div>
+            {% endif %}
+          {% empty %}
+            <h4>No rooms found</h4>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}
 

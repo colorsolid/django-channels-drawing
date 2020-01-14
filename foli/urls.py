@@ -20,5 +20,5 @@ from draw.views import room
 urlpatterns = [
     path('', include('labs.urls')),
     path('draw/', include('draw.urls')),
-    path('admin/', admin.site.urls)
+    path('admin_hellaheyump/', admin.site.urls)
 ]

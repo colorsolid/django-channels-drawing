@@ -56,7 +56,6 @@ function update_users(data) {
 
 
 function user_load(data) {
-  console.log('loaded')
   groups = {}; // reconnect
   if (data.drawings) {
     for (let drawing of data.drawings) {
@@ -91,7 +90,6 @@ function user_load(data) {
 
 
 function user_connect(data) {
-  console.log('connected', data);
   let new_group = false;
   let group_name = '* * M A I N * *';
   if (!(group_name in groups)) {
@@ -100,7 +98,6 @@ function user_connect(data) {
   }
   let user = groups[group_name].filter(u => (u.hash === data.hash));
   user = user.length ? user[0] : null;
-  console.log('u', user, new_group);
   if (user === null) {
     user = {
       nickname: data.nickname,
@@ -143,7 +140,6 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
 
 function build_group_elements(group_name) {
   let group = groups[group_name];
-  console.log('group', group);
   let headers = [].slice.call(user_display.getElementsByClassName('group-header'));
   headers = headers.filter(a => (a.dataset.group_name === group_name));
   let group_header_tr = headers.length ? headers[0] : null;
@@ -232,10 +228,6 @@ function find_index(user) {
   flat_rows.push(user_flat);
   flat_rows.sort();
   let index = flat_rows.indexOf(user_flat);
-  console.log(user);
-  console.log(flat_rows);
-  console.log(rows);
-  console.log(user.nickname + ' ' + index);
   return index;
 }
 

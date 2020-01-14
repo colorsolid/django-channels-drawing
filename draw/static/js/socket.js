@@ -18,7 +18,6 @@ function start_socket() {
   socket.onopen = function(e) {
     initial = true;
     console.log('%c welcome ', 'background: #4444bb; color: #01fdfd;');
-    console.log(nickname, user_id);
   };
 
   socket.onerror = function(e) {
@@ -32,7 +31,6 @@ function start_socket() {
 
   socket.onmessage = function(e) {
     let data = JSON.parse(e.data);
-    console.log('message data', data);
     parse_data(data);
   }
   return socket;

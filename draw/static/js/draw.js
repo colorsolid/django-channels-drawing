@@ -259,7 +259,6 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
 
 
 function draw_segments(drawing) {
-  console.log(drawing);
   let _ctx;
   let segments = drawing.segments;
   if (drawing.hash === user_id.substr(0, 12)) _ctx = ctx;

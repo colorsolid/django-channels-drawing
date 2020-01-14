@@ -1,14 +1,17 @@
+from    datetime import datetime
+from    dateutil import tz
 from    django.http import HttpResponseRedirect
 from    django.shortcuts import render, redirect
 from    django.utils.safestring import mark_safe
 from    django.utils.text import slugify
+from    django.utils import timezone
 from    draw.utils import get_context
 from    foli.utils import random_string, random_phrase
 import  json
 import  re
 
 from    .forms import DrawingBoardForm, ArtistForm
-from    .models import Artist
+from    .models import Artist, DrawingBoard
 
 
 def draw(request):
@@ -31,8 +34,22 @@ def lobby(request):
         ])),
         'drawing_board_form': drawing_board_form,
         'artist_form': artist_form,
-        'forms': [drawing_board_form, artist_form]
+        'forms': [drawing_board_form, artist_form],
+        'rooms': []
     })
+    rooms = DrawingBoard.objects.all().order_by('date_modified').reverse()[:10]
+    for room in rooms:
+        from_zone = tz.gettz('UTC')
+        to_zone = tz.tzlocal()
+        local = timezone.localtime(room.date_modified).astimezone(to_zone)
+        print('local', local)
+        context['rooms'].append({
+            'room_name': room.name,
+            'creator_nickname': room.creator.nickname,
+            'creator_hash': room.creator.user_id[0:12],
+            'modified': local
+        })
+    print(context)
     return render(request, 'draw/lobby.html', context)
 
 

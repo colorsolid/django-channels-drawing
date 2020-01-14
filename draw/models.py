@@ -8,6 +8,8 @@ class DrawingBoard(models.Model):
     name = models.CharField(max_length=50, default='')
     password = models.CharField(max_length=50, default='', blank=True)
     artists = models.ManyToManyField('Artist', related_name='artist_boards')
+    date_created = models.DateTimeField(auto_now_add=True, null=True)
+    date_modified = models.DateTimeField(auto_now=True, null=True)
 
 
 class Artist(models.Model):

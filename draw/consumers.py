@@ -22,7 +22,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
         self.user_id = session.get('user_id')
         self.hash = self.user_id[0:12]
         self.nickname = session.get('nickname')
-        print(self.nickname)
         if not self.user_id or not self.nickname:
             await self.close()
         else:
@@ -55,7 +54,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def send_load_data(self):
-        print('load')
         users = self.channel_layer.user_list[self.room_name]
         _users = []
         for user in users:
@@ -144,7 +142,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
     # message to client, called data['type'] in receive()
     async def draw(self, data):
         if data['connection_id'] != self.connection_id:
-            print('draw')
             await self.send(text_data=json.dumps(data))
 
 
@@ -162,6 +159,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         self.clear_allowed = False
         self.drawing.end_index += 1
         self.drawing.save()
+        self.drawing.board.save()
         segment = Segment(
             drawing = self.drawing,
             clear = True,
@@ -174,6 +172,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         if self.drawing.end_index > -1:
             self.drawing.end_index -= 1
             self.drawing.save()
+            self.drawing.board.save()
             return True
         return False
 
@@ -183,6 +182,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
         if self.drawing.end_index < last_index:
             self.drawing.end_index += 1
             self.drawing.save()
+            self.drawing.board.save()
             return True
         return False
 
@@ -190,6 +190,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
     def save(self, data):
         self.drawing.end_index += 1
         self.drawing.save()
+        self.drawing.board.save()
         self.drawing.segment_set.filter(index__gte=self.drawing.end_index).delete()
         segment = Segment(
             drawing = self.drawing,
