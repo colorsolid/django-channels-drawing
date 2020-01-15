@@ -1,5 +1,4 @@
 from    datetime import datetime
-from    dateutil import tz
 from    django.http import HttpResponseRedirect
 from    django.shortcuts import render, redirect
 from    django.utils.safestring import mark_safe
@@ -39,17 +38,11 @@ def lobby(request):
     })
     rooms = DrawingBoard.objects.all().order_by('date_modified').reverse()[:10]
     for room in rooms:
-        from_zone = tz.gettz('UTC')
-        to_zone = tz.tzlocal()
-        local = timezone.localtime(room.date_modified).astimezone(to_zone)
-        print('local', local)
         context['rooms'].append({
             'room_name': room.name,
             'creator_nickname': room.creator.nickname,
-            'creator_hash': room.creator.user_id[0:12],
-            'modified': local
+            'creator_hash': room.creator.user_id[0:12]
         })
-    print(context)
     return render(request, 'draw/lobby.html', context)
 
 

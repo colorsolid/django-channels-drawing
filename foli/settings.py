@@ -35,7 +35,7 @@ SECRET_KEY = env('SECRET_KEY')
 
 DEBUG = (env('DEBUG') == 'True')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134', '192.168.1.124', '73.25.241.249', 'skyray.dev']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.134', '192.168.1.113', '192.168.1.124', '73.25.249.241', 'skyray.dev']
 
 
 # Application definition

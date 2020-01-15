@@ -3,16 +3,48 @@ var logo = document.getElementById('logo');
 var debug = document.getElementById('debug');
 var box_header = document.getElementById('box-header');
 
+/*
 for (let letter of letters) {
   let text = `<text x="${letter.x}" y="${letter.y}" class="letter white">${letter.letter}</text>`;
   box_header.innerHTML += text;
 }
+*/
 
-let elems = box_header.getElementsByTagName('text');
-for (let i = 0; i < elems.length; i++) {
-  letters[i].elem = elems[i];
+for (let [word, [x, y]] of words) {
+  let factor = box_header.getBoundingClientRect().width / 240;
+  let word_text = word.split('').join(' ');
+  let word_text_html = `<text class="letter white" x="${x}" y="${y}"></text>`;
+  box_header.innerHTML += word_text_html;
+  let word_text_elements = box_header.getElementsByTagName('text');
+  let word_text_element = word_text_elements[word_text_elements.length - 1];
+  let elements = [];
+  for (let i = 0; i < word.length; i++) {
+    let letter = word[i];
+    let word_part = word_text_element.innerHTML;
+    if (word_part.length) {
+      word_part += ' ';
+    }
+    word_part += letter;
+    word_text_element.innerHTML = letter;
+    let letter_width = word_text_element.getBoundingClientRect().width / factor;
+    word_text_element.innerHTML = word_part;
+    let partial_word_width = word_text_element.getBoundingClientRect().width / factor;
+    let letter_x = Math.round(partial_word_width - letter_width) + x;
+    let letter_html = `<text class="letter white" x="${letter_x}" y="${y}">${letter}</text>`;
+    elements.push(letter_html);
+  }
+  for (let element of elements) {
+    box_header.innerHTML += element;
+  }
+  word_text_element.innerHTML = word_text;
 }
 
+let elems = box_header.getElementsByTagName('text');
+
+let letters = [];
+for (let elem of elems) {
+  letters.push({elem: elem, x: elem.getAttribute('x'), y: elem.getAttribute('y')});
+}
 
 let counted = 0;
 for (let i = 0; i < elems; i++) {

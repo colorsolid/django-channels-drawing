@@ -19,20 +19,7 @@
 
 {% block scripts %}
   <script type="text/javascript">
-    const letters = [
-      {letter: 's k y r a y', x: 10, y: 55},
-      {letter: 's', x: 10, y: 55},
-      {letter: 'k', x: 43, y: 55},
-      {letter: 'y', x: 77, y: 55},
-      {letter: 'r', x: 110, y: 55},
-      {letter: 'a', x: 137, y: 55},
-      {letter: 'y', x: 170, y: 55},
-      {letter: 'l a b s', x: 85, y: 100},
-      {letter: 'l', x: 85, y: 100},
-      {letter: 'a', x: 107, y: 100},
-      {letter: 'b', x: 141, y: 100},
-      {letter: 's', x: 176, y: 100},
-    ];
+    const words = [['skyray', [10, 55]], ['labs', [85, 100]]];
   </script>
   {% load static %}
   <script src="{% static 'js/header.js' %}" type="text/javascript"></script>
