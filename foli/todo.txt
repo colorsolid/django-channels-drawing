@@ -1,27 +1,39 @@
 Labs
-  Automatically generate header
-  Soundcloud clone?
   Drawing
-    Users via hash (show full hash id to user)
-    Users via registration
+    * Users via email temp login links
+    User profile
+    Attach email address
+    ? Users via hash (show full hash id to user)
+    ? Users via registration
     Lobby
+      * Show all previously created DrawingBoards on lobby screen, probably paginate
+      * Mark all boards the user has drawn in and filtering/sorting options
       Random names through channels
       Display number of users in each room
       Correct form validation
-      * Show all previously created DrawingBoards on lobby screen, probably paginate
-      * Mark all boards the user has drawn in and filtering/sorting options
     Room
-      Middle mouse click/double tap to move
-      Show user marker at end of user's drawing
-      Draw dots
-      Draw shapes
-      Fill?
-      Zoom?
-      * Undo/redo
       * Show online status
       * Handle server disconnects and reconnects
-        - Prevent redrawing
       * Handle updated user name or group in room
       * Fade sidebar when drawing
-      * Line thickness
-      * Color picker
+      * Line thickness with corner smoothing
+      * Full color picker
+      * Re order drawings
+      Cycle through drawing's segments
+      Fade/make opaque background drawings
+      Middle mouse click/double tap to move
+      Draw dots
+      Draw shapes/lines
+      Zoom
+      ? Voting
+      ? Erase
+      ? Fill
+      ? Show user marker on user's drawing
+
+
+BUGS
+  Drawing
+    Room
+      ** Clear & undo multiple times doesn't properly update the last_index on the channel
+      * Multiple connections from the same user creates different boards, drawing functions won't sync properly
+      * Double clicking with grab makes the position jump

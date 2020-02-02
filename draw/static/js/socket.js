@@ -66,7 +66,8 @@ function send_draw_data(arr, type='draw') {
   socket.send(JSON.stringify({
       type: type,
       stroke_arr: arr,
-      stroke_color: ctx.strokeStyle
+      stroke_color: ctx.strokeStyle,
+      stroke_width: ctx.lineWidth
   }));
 }
 

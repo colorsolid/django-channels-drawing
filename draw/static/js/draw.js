@@ -1,47 +1,3 @@
-window.onload = function() {
-  window.scrollTo(0, 0);
-}
-
-
-const main = document.getElementById('main');
-const board = document.querySelector('.board-local');
-const pos = document.getElementById('pos');
-const board_wrapper = document.getElementById('board-wrapper');
-board_wrapper !== 'bored_rapper';
-const functions_bar = document.getElementById('functions-bar');
-
-const color_btns = functions_bar.querySelectorAll('.btn-color');
-
-var ctx = board.getContext('2d');
-var remote_boards = {};
-ctx.save();
-ctx.lineWidth = 1;
-
-color_btns.forEach(btn => {
-  btn.style.color = btn.dataset.color;
-  btn.onclick = function() {
-    color_btns.forEach(btn => {btn.classList.remove('btn-secondary');});
-    this.classList.add('btn-secondary');
-    ctx.restore();
-    ctx.strokeStyle = this.dataset.color;
-  }
-});
-
-var rect = board.getBoundingClientRect();
-
-var draw_enabled = false;
-var move_enabled = true;
-
-board_wrapper.style.cursor = 'grab';
-
-board_wrapper.style.height = (window.innerHeight) + 'px';
-window.onresize = function() {
-  board_wrapper.style.height = (window.innerHeight) + 'px';
-  rect = board.getBoundingClientRect();
-}
-
-
-
 //----------------------------------------------------------------------------------------- >
 // M O U S E _ E V E N T S ---------------------------------------------------------------- >
 //----------------------------------------------------------------------------------------- >
@@ -99,12 +55,14 @@ function input_move(event) {
   if (clicked) {
     if (draw_enabled && board.style.display !== 'none') {
       draw_input(x_new, y_new);
+      btn_redo.disabled = true;
     }
     if (move_enabled) {
       move_board(x_new, y_new);
     }
   }
 }
+
 
 function draw_input(x_new, y_new) {
   ctx.beginPath();
@@ -114,7 +72,12 @@ function draw_input(x_new, y_new) {
   }
   x = x_new - x_offset;
   y = y_new - y_offset;
-  //ctx.fillRect(x, y, 10, 10);
+  //ctx.arc(x, y, _drawing.thickness / 2, 2 * Math.PI, false);
+  //ctx.fill();
+  size = ctx.lineWidth;
+  half = size / 2;
+  ctx.fillStyle = _drawing.color;
+  ctx.fillRect(x - half, y - half, size, size);
   if (line_draw) {
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -123,6 +86,7 @@ function draw_input(x_new, y_new) {
   stroke.push([x, y]);
   stroke_chunk.push([x, y]);
 }
+
 
 function move_board(x_new=0, y_new=0) {
   x_diff = x_new - x_grab;
@@ -137,24 +101,26 @@ function move_board(x_new=0, y_new=0) {
   //functions_bar.style.marginTop = (-y_offset - y_diff > 0 ? -y_offset - y_diff : 0) + 'px';
 }
 
+
 board_wrapper.onmouseup = unclick;
 board_wrapper.onmouseout = unclick;
 board_wrapper.ontouchend = unclick;
+
 
 function unclick() {
   if (clicked) {
     clicked = false;
     if (stroke.length) {
+      btn_clear.disabled = false;
+      btn_undo.disabled = false;
       let stroke_data = {
         color: ctx.strokeStyle,
         coords: stroke,
         thickness: ctx.lineWidth
       };
-      if (_drawing.segments.length - 1 > _drawing.end_index) {
-        _drawing.segments = _drawing.segments.slice(0, _drawing.end_index + 1);
-      }
+      trim_segments();
       _drawing.segments.push(stroke_data);
-      _drawing.end_index += 1;
+      _drawing.end_index = _drawing.segments.length - 1;
       stroke_arr.push(stroke);
       stroke = [];
     }
@@ -173,6 +139,13 @@ function unclick() {
       send_draw_data([stroke_chunk], 'save');
     }
     stroke_chunk = [];
+  }
+}
+
+
+function trim_segments() {
+  if (_drawing.segments.length - 1 > _drawing.end_index) {
+    _drawing.segments = _drawing.segments.slice(0, _drawing.end_index + 1);
   }
 }
 
@@ -206,32 +179,46 @@ function toggle_modes() {
   draw_enabled = (btn_draw_toggle.dataset.draw === 'true');
 }
 
-var btn_undo = document.getElementById('btn-undo');
+
 btn_undo.onclick = function() {
   let segments = null;
   if (_drawing.end_index > -1) {
     _drawing.end_index -= 1;
     segments = draw_segments(_drawing);
+    ctx.strokeStyle = _drawing.color;
+    btn_redo.disabled = false;
+    update_btn_clear_status(segments, end_index=_drawing.end_index);
+  }
+  if (_drawing.end_index <= -1) {
+    this.disabled = true;
   }
   send_draw_data(segments, 'undo');
 }
 
-var btn_redo = document.getElementById('btn-redo');
+
 btn_redo.onclick = function() {
   let segments = null;
+  if (_drawing.end_index >= _drawing.segments.length - 2) {
+    this.disabled = true;
+  }
   if (_drawing.end_index < _drawing.segments.length - 1) {
     _drawing.end_index += 1;
     segments = draw_segments(_drawing);
+    btn_undo.disabled = false;
+    update_btn_clear_status(segments);
   }
   send_draw_data(segments, 'redo');
 }
 
-var btn_clear = document.getElementById('btn-clear');
+
 btn_clear.onclick = function() {
+  trim_segments();
   _drawing.segments.push('CLEAR');
   _drawing.end_index += 1;
   ctx.clearRect(0, 0, board.width, board.height);
   send_draw_data(null, 'clear');
+  this.disabled = true;
+  btn_redo.disabled = true;
 }
 
 
@@ -242,10 +229,11 @@ btn_clear.onclick = function() {
 
 // a stroke is an array of [x, y] coordinate pairs,
 // and stroke_arr is an array of strokes
-function draw_strokes(stroke_arr, stroke_color, ctx) {
+function draw_strokes(stroke_arr, stroke_color, segment_thickness, ctx) {
   for (let stroke of stroke_arr) {
     for (let i = 0; i < stroke.length - 1; i++) {
       ctx.strokeStyle = stroke_color;
+      ctx.lineWidth = segment_thickness;
       ctx.beginPath();
       let a = stroke[i];
       let b = stroke[i + 1];
@@ -261,7 +249,7 @@ function draw_strokes(stroke_arr, stroke_color, ctx) {
 function draw_segments(drawing) {
   let _ctx;
   let segments = drawing.segments;
-  if (drawing.hash === user_id.substr(0, 12)) _ctx = ctx;
+  if (drawing.hash === user_hash) _ctx = ctx;
   else {
     let ctx_id = create_board(drawing.nickname, drawing.hash);
     _ctx = remote_boards[ctx_id].ctx;
@@ -279,7 +267,7 @@ function draw_segments(drawing) {
   }
   for (let segment of segments) {
     if (segment !== 'CLEAR') {
-      draw_strokes([segment.coords], segment.color, _ctx);
+      draw_strokes([segment.coords], segment.color, segment.thickness, _ctx);
     }
   }
   return segments;

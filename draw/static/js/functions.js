@@ -1,3 +1,7 @@
+window.onload = function() {
+  window.scrollTo(0, 0);
+}
+
 const user_display = document.querySelector('#user-list tbody');
 var groups = {};
 
@@ -5,18 +9,129 @@ var loaded = false;
 
 var _drawing = {
   segments: [],
-  end_index: -1
+  end_index: -1,
+  color: '#000000',
+  thickness: 3,
+  drawing_group: '* * M A I N * *',
+  hash: user_hash,
+  nickname: nickname,
+  self: true
 };
 
+const main = document.getElementById('main');
+const board = document.querySelector('.board-local');
+const pos = document.getElementById('pos');
+const board_wrapper = document.getElementById('board-wrapper');
+board_wrapper !== 'bored_rapper';
+const functions_bar = document.getElementById('functions-bar');
 
+const color_indic = document.getElementById('btn-color-indicator');
+color_indic.style.backgroundColor = _drawing.color;
+const color_btns = functions_bar.querySelectorAll('.btn-color');
+
+
+const btn_undo = document.getElementById('btn-undo');
+const btn_redo = document.getElementById('btn-redo');
+const btn_clear = document.getElementById('btn-clear');
+
+var ctx = board.getContext('2d');
+ctx.strokeStyle = _drawing.color;
+ctx.lineWidth = _drawing.thickness;
+//ctx.save();
+
+var remote_boards = {};
+
+color_btns.forEach(btn => {
+  btn.style.color = btn.dataset.color;
+  btn.onclick = function() {
+    color_btns.forEach(btn => {btn.classList.remove('btn-secondary');});
+    this.classList.add('btn-secondary');
+    _drawing.color = this.dataset.color;
+    color_indic.style.backgroundColor = _drawing.color;
+    ctx.strokeStyle = _drawing.color;
+  }
+});
+
+var brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30];
+
+var brush_size_select = document.getElementById('brush-size-select');
+brush_size_select.value = _drawing.thickness;
+console.log(_drawing.thickness);
+for (let brush_size of brush_sizes) {
+  let option = document.createElement('option');
+  option.innerHTML = brush_size;
+  brush_size_select.appendChild(option);
+}
+
+var rect = board.getBoundingClientRect();
+
+var draw_enabled = false;
+var move_enabled = true;
+
+board_wrapper.style.cursor = 'grab';
+
+board_wrapper.style.height = (window.innerHeight) + 'px';
+window.onresize = function() {
+  board_wrapper.style.height = (window.innerHeight) + 'px';
+  rect = board.getBoundingClientRect();
+}
+
+function update_redo_btn_status(drawing, status=null) {
+  if (status !== null) {
+    btn_redo.disabled = status;
+  }
+  else {
+    if (_drawing.segments.length) {
+      if (_drawing.end_index < _drawing.segments.length - 1) {
+        btn_redo.disabled = false;
+      }
+      if (_drawing.end_index > -1) {
+        btn_undo.disabled = false;
+      }
+    }
+  }
+}
+
+function update_btn_clear_status(segments, end_index=null, status=null) {
+  if (status !== null) {
+    btn_clear.disabled = status;
+  }
+  else if (end_index === -1) {
+    btn_clear.disabled = true;
+  }
+  else {
+    if (segments && segments.length) {
+      if (segments.length > 1
+      || segments.length === 1 && segments[0] !== 'CLEAR') {
+        btn_clear.disabled = false;
+      }
+      else {
+        btn_clear.disabled = true;
+      }
+    }
+  }
+}
 
 function parse_data(data) {
+  console.log(data)
+  let segments = null;
   if (data.drawings) {
     for (let drawing of data.drawings) {
-      if ('user_id' in drawing && drawing.user_id === user_id) {
+      if ('self' in drawing) {
         _drawing = drawing;
+        color_indic.style.backgroundColor = _drawing.color;
+        brush_size_select.value = _drawing.thickness;
       }
-      draw_segments(drawing);
+      segments = draw_segments(drawing);
+    }
+    update_btn_clear_status(_drawing.segments, _drawing.end_index);
+    if (_drawing.segments.length) {
+      if (_drawing.end_index < _drawing.segments.length - 1) {
+        btn_redo.disabled = false;
+      }
+      if (_drawing.end_index > -1) {
+        btn_undo.disabled = false;
+      }
     }
   }
   if (data.set_connection_id && connection_id === null) {
@@ -24,7 +139,7 @@ function parse_data(data) {
   }
   if (data.stroke_arr) {
     let ctx_id = create_board(data.nickname, data.hash);
-    draw_strokes(data.stroke_arr, data.stroke_color, remote_boards[ctx_id].ctx);
+    draw_strokes(data.stroke_arr, data.stroke_color, data.stroke_width, remote_boards[ctx_id].ctx);
   }
   if (data.note) {
     update_users(data);
@@ -83,7 +198,7 @@ function user_load(data) {
   if (data.users) {
     for (let user of data.users) {
       build_group_elements(user.group);
-      build_user_elements(user, user.group);
+      build_user_elements(user, user.group, connected=true);
     }
   }
 }
@@ -108,9 +223,9 @@ function user_connect(data) {
     if (new_group) {
       build_group_elements(group_name);
     }
-    build_user_elements(user, group_name);
   }
-  if (data.hash !== user_id.substr(0, 12)) {
+  build_user_elements(user, group_name, connected=true);
+  if (data.hash !== user_hash) {
     create_board(data.nickname, data.hash);
   }
 }
@@ -177,13 +292,13 @@ function build_group_elements(group_name) {
 }
 
 
-function build_user_elements(user, group_name) {
+function build_user_elements(user, group_name, connected=false) {
   let user_display_id = `user-display-${user.hash}`;
   let user_tr = document.getElementById(user_display_id);
   if (user_tr === null) {
     user_tr = el(
       'tr', '',
-      `${user.hash === user_id.substr(0, 12) ? ' user-self' : ''} user-row`,
+      `${user.hash === user_hash ? ' user-self' : ''} user-row`,
       {
         'id': `user-display-${user.hash}`,
         'data-group': group_name,
@@ -194,7 +309,10 @@ function build_user_elements(user, group_name) {
     );
     el('td', '', 'status', {}, user_tr);
     el('td', user.nickname, 'nickname', {}, user_tr);
-    el('span', '#' + user.hash.substr(0, 4), 'badge badge-danger bd-dark', {}, el('td', '', '', {}, user_tr));
+    el(
+      'span', '#' + user.hash.substr(0, 4),
+      'badge badge-hash bd-dark ' + (connected ? 'badge-danger' : 'badge-secondary'), {},
+      el('td', '', '', {}, user_tr));
     el(
       'button', '&nbsp;o&nbsp;',
       `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,
@@ -208,6 +326,11 @@ function build_user_elements(user, group_name) {
       },
       el('td', '', '', {}, user_tr)
     ).onclick = toggle_user;
+  }
+  else {
+    let badge = user_tr.querySelector('.badge-hash');
+    badge.classList.remove('badge-secondary');
+    badge.classList.add('badge-danger');
   }
 }
 

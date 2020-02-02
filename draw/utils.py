@@ -18,7 +18,7 @@ def get_context(request):
                 break
         request.session['user_id'] = user_id
     context = {
-        'user_id': mark_safe(user_id),
+        'user_hash': mark_safe(user_id[0:12]),
         'nickname':  mark_safe(nickname)
     }
     return context
@@ -55,8 +55,15 @@ def get_drawings(board, user_id):
             'end_index': drawing.end_index
         }
         if user_id == drawing.artist.user_id:
+            _drawing['self'] = True
             segments = drawing.segment_set.all().order_by('index')
-            _drawing['user_id'] = user_id
+            if len(segments):
+                last = segments[len(segments) - 1]
+                _drawing['color'] = last.color
+                _drawing['thickness'] = last.thickness
+            else:
+                _drawing['color'] = '#000000'
+                _drawing['thickness'] = 3
         else:
             segments = drawing.segment_set.filter(index__lte=drawing.end_index).order_by('index')
             clears = segments.filter(clear=True)

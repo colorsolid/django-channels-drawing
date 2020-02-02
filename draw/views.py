@@ -57,4 +57,5 @@ def room(request, room_name):
     context = get_context(request)
     context['room_name'] = mark_safe(room_name)
     request.session['last_room_name'] = room_name
+    print(context)
     return render(request, 'draw/draw.html', context)

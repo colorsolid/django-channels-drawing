@@ -72,7 +72,7 @@
                 <h4>
                   {{ room.room_name }}
                 </h4>
-                Created by: <br><div class="mt-2 badge badge-dark">{{ room.creator_nickname }}#{{ room.creator_hash|slice:'0:4' }}</div>
+                Created by: <br>{{ room.creator_nickname }} <div class="mt-2 badge badge-dark">#{{ room.creator_hash|slice:'0:4' }}</div>
               </a>
             </div>
             {% if forloop.counter|divisibleby:5 %}
