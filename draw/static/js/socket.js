@@ -9,7 +9,7 @@ var connection_id = null;
 
 function start_socket() {
   let ws_start = 'ws://';
-  if (loc.protocol == 'https:') {
+  if (loc.protocol === 'https:') {
     ws_start = 'wss://';
   }
   let endpoint = ws_start + loc.host + '/ws/draw/' + room_name + '/';

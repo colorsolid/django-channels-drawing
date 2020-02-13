@@ -16,7 +16,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
         if not hasattr(self.channel_layer, 'user_list'):
             self.channel_layer.user_list = {}
         room_name = self.scope['url_route']['kwargs']['room_name']
-        self.clear_allowed = True
         self.connection_id = random_string()
         session = self.scope['session']
         self.user_id = session.get('user_id')
@@ -50,6 +49,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 except Drawing.DoesNotExist:
                     pass
             await self.send_load_data()
+            await self.add_user()
             self.segment_coords = []
 
 
@@ -67,7 +67,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-        await self.add_user()
         data = {
             'note': 'load',
             'set_connection_id': self.connection_id,
@@ -104,8 +103,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
             self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
         if 'stroke_arr' in data:
             if data['stroke_arr'] and data['type'] in ['draw', 'save']:
-                if not self.clear_allowed:
-                    self.clear_allowed = True
                 self.segment_coords += data['stroke_arr'][0]
                 if data['type'] == 'save':
                     self.save(data)
@@ -115,17 +112,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
                     data
                 )
             if data['type'] == 'clear':
-                if self.clear_allowed:
-                    segments = self.drawing.segment_set.all()
-                    last = segments.last()
-                    if not last.clear:
-                        self.clear()
-                        data['type'] = 'draw'
-                        data['clear'] = True
-                        await self.channel_layer.group_send(
-                            self.room_group_name,
-                            data
-                        )
+                self.clear()
+                data['type'] = 'draw'
+                data['clear'] = True
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    data
+                )
             if data['type'] == 'undo':
                 if self.undo(data):
                     await self.redraw(data)
@@ -155,9 +148,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
         )
 
 
+    def test_clear_allowed(self):
+        segments = self.drawing.segment_set.all()
+        last = segments.last()
+        return segments[self.drawing.end_index].clear
+
+
     def clear(self):
-        print('clearing')
-        self.clear_allowed = False
         self.drawing.end_index += 1
         self.drawing.save()
         self.drawing.board.save()
@@ -171,7 +168,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     def undo(self, data, *args):
-        self.test_clear_allowed(data)
         if self.drawing.end_index > -1:
             self.drawing.end_index -= 1
             self.drawing.save()
@@ -181,7 +177,6 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     def redo(self, data, *args):
-        self.test_clear_allowed(data)
         last_index = len(self.drawing.segment_set.all()) - 1
         if self.drawing.end_index < last_index:
             self.drawing.end_index += 1
@@ -191,24 +186,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
         return False
 
 
-    def test_clear_allowed(self, data):
-        print('stroke_arr' in data)
-        if 'stroke_arr' in data:
-            print(len(data['stroke_arr']))
-            print(data['stroke_arr'][0])
-            if len(data['stroke_arr']) == 1 and data['stroke_arr'][0] == 'CLEAR':
-                self.clear_allowed = False
-            else:
-                self.clear_allowed = True
-
-
     def save(self, data):
         self.drawing.end_index += 1
         self.drawing.save()
         self.drawing.board.save()
         self.drawing.segment_set.filter(index__gte=self.drawing.end_index).delete()
         thickness = int(data['stroke_width'])
-        thickness = 20 if thickness > 20 else thickness
+        thickness = 30 if thickness > 30 else thickness
         thickness = 1 if thickness < 0 else thickness
         segment = Segment(
             drawing = self.drawing,

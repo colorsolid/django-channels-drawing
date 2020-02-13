@@ -33,11 +33,16 @@ const color_btns = functions_bar.querySelectorAll('.btn-color');
 const btn_undo = document.getElementById('btn-undo');
 const btn_redo = document.getElementById('btn-redo');
 const btn_clear = document.getElementById('btn-clear');
+const brush_size_select = document.getElementById('brush-size-select');
+
+var rect = board.getBoundingClientRect();
+
+var draw_enabled = false;
+var move_enabled = true;
 
 var ctx = board.getContext('2d');
 ctx.strokeStyle = _drawing.color;
 ctx.lineWidth = _drawing.thickness;
-//ctx.save();
 
 var remote_boards = {};
 
@@ -54,19 +59,15 @@ color_btns.forEach(btn => {
 
 var brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30];
 
-var brush_size_select = document.getElementById('brush-size-select');
 brush_size_select.value = _drawing.thickness;
-console.log(_drawing.thickness);
 for (let brush_size of brush_sizes) {
   let option = document.createElement('option');
+  if (brush_size === _drawing.thickness) {
+    option.setAttribute('selected', true);
+  }
   option.innerHTML = brush_size;
   brush_size_select.appendChild(option);
 }
-
-var rect = board.getBoundingClientRect();
-
-var draw_enabled = false;
-var move_enabled = true;
 
 board_wrapper.style.cursor = 'grab';
 
@@ -77,32 +78,25 @@ window.onresize = function() {
 }
 
 function update_redo_btn_status(drawing, status=null) {
-  if (status !== null) {
-    btn_redo.disabled = status;
-  }
+  if (status !== null) btn_redo.disabled = status;
   else {
     if (_drawing.segments.length) {
       if (_drawing.end_index < _drawing.segments.length - 1) {
         btn_redo.disabled = false;
       }
-      if (_drawing.end_index > -1) {
-        btn_undo.disabled = false;
-      }
+      if (_drawing.end_index > -1) btn_undo.disabled = false;
     }
   }
 }
 
 function update_btn_clear_status(segments, end_index=null, status=null) {
-  if (status !== null) {
-    btn_clear.disabled = status;
-  }
-  else if (end_index === -1) {
-    btn_clear.disabled = true;
-  }
+  if (status !== null) btn_clear.disabled = status;
+  else if (end_index === -1) btn_clear.disabled = true;
   else {
     if (segments && segments.length) {
       if (segments.length > 1
-      || segments.length === 1 && segments[0] !== 'CLEAR') {
+      || segments.length === 1
+      && segments[0] !== 'CLEAR') {
         btn_clear.disabled = false;
       }
       else {
@@ -113,7 +107,12 @@ function update_btn_clear_status(segments, end_index=null, status=null) {
 }
 
 function parse_data(data) {
-  console.log(data)
+  ctx.beginPath();
+
+  ctx.arc(25, 25, 20, 0, Math.PI * 2, false);
+
+  ctx.fill();
+  ctx.closePath();
   let segments = null;
   if (data.drawings) {
     for (let drawing of data.drawings) {
@@ -122,16 +121,14 @@ function parse_data(data) {
         color_indic.style.backgroundColor = _drawing.color;
         brush_size_select.value = _drawing.thickness;
       }
-      segments = draw_segments(drawing);
+      segments = process_drawing_data(drawing, draw=true);
     }
     update_btn_clear_status(_drawing.segments, _drawing.end_index);
     if (_drawing.segments.length) {
       if (_drawing.end_index < _drawing.segments.length - 1) {
         btn_redo.disabled = false;
       }
-      if (_drawing.end_index > -1) {
-        btn_undo.disabled = false;
-      }
+      if (_drawing.end_index > -1) btn_undo.disabled = false;
     }
   }
   if (data.set_connection_id && connection_id === null) {
@@ -139,34 +136,52 @@ function parse_data(data) {
   }
   if (data.stroke_arr) {
     let ctx_id = create_board(data.nickname, data.hash);
-    draw_strokes(data.stroke_arr, data.stroke_color, data.stroke_width, remote_boards[ctx_id].ctx);
+    draw_strokes(
+      data.stroke_arr, data.stroke_color,
+      data.stroke_width, remote_boards[ctx_id].ctx
+    );
   }
-  if (data.note) {
-    update_users(data);
-  }
+  if (data.note) update_users(data);
   if (data.clear) {
     let ctx = remote_boards[data.nickname + '!' + data.hash].ctx;
     ctx.clearRect(0, 0, board.width, board.height);
   }
   if (data.segments && data.redraw) {
-    draw_segments(data);
+    process_drawing_data(data, draw=true);
   }
 }
 
 
+// assign ctx, trim segments, clear board || CLEAN UP
+function process_drawing_data(drawing, draw=false) {
+  let _ctx;
+  let segments = drawing.segments;
+  if (drawing.hash === user_hash) _ctx = ctx;
+  else {
+    let ctx_id = create_board(drawing.nickname, drawing.hash);
+    _ctx = remote_boards[ctx_id].ctx;
+  }
+  _ctx.clearRect(0, 0, board.width, board.height);
+  if (drawing.end_index !== undefined) {
+    segments = segments.slice(0, drawing.end_index + 1);
+    let start_index = segments.lastIndexOf('CLEAR');
+    if (start_index > 0) segments = segments.slice(start_index);
+  }
+  if (drawing.redraw) _ctx.clearRect(0, 0, board.width, board.height);
+  for (let segment of segments) {
+    if (segment !== 'CLEAR' && draw === true) {
+      draw_strokes([segment.coords], segment.color, segment.thickness, _ctx);
+    }
+  }
+  return segments;
+}
+
+
 function update_users(data) {
-  if (data.note === 'load') {
-    user_load(data);
-  }
-  if (data.note === 'connected') {
-    user_connect(data);
-  }
-  if (data.note === 'update') {
-
-  }
-  if (data.note === 'disconnected') {
-
-  }
+  if (data.note === 'load') user_load(data);
+  if (data.note === 'connected') user_connect(data);
+  if (data.note === 'update') user_update(data);
+  if (data.note === 'disconnected') user_disconnected(data);
 }
 
 
@@ -183,7 +198,6 @@ function user_load(data) {
       let user = {
         nickname: nickname,
         hash: hash,
-        display: 'inherit',
         group_name: group_name
       };
       groups[group_name].push(user);
@@ -228,6 +242,16 @@ function user_connect(data) {
   if (data.hash !== user_hash) {
     create_board(data.nickname, data.hash);
   }
+}
+
+
+function user_update(data) {
+  console.log('update', data);
+}
+
+
+function user_disconnected(data) {
+  console.log('disconnected', data);
 }
 
 
@@ -312,7 +336,8 @@ function build_user_elements(user, group_name, connected=false) {
     el(
       'span', '#' + user.hash.substr(0, 4),
       'badge badge-hash bd-dark ' + (connected ? 'badge-danger' : 'badge-secondary'), {},
-      el('td', '', '', {}, user_tr));
+      el('td', '', '', {}, user_tr)
+    );
     el(
       'button', '&nbsp;o&nbsp;',
       `btn btn-outline-secondary btn-dark btn-toggle-user h-${user.hash} text-light`,

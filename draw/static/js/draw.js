@@ -25,12 +25,12 @@ var x_offset = Math.round(-2048 + (window.innerWidth / 2));
 var y_offset = Math.round(-2048 + (window.innerHeight / 2));
 
 var clicked = false;
-var line_draw = false;
 
 board_wrapper.onmousedown = click;
 board_wrapper.ontouchstart = click;
 
 function click(event) {
+  _drawing.thickness = brush_size_select.value;
   event.preventDefault();
   clicked = true;
   if (move_enabled) {
@@ -49,42 +49,14 @@ function input_move(event) {
   if (x_grab === -1 && y_grab === -1) {
     pos.innerHTML = `(${Math.floor(x_new - x_offset - 2048)}, ${-Math.floor(y_new - y_offset - 2048)})`;
   }
-  else {
-    pos.innerHTML = `(${Math.floor(x_grab - x_offset - 2048)}, ${-Math.floor(y_grab - y_offset - 2048)})`;
-  }
+  else pos.innerHTML = `(${Math.floor(x_grab - x_offset - 2048)}, ${-Math.floor(y_grab - y_offset - 2048)})`;
   if (clicked) {
     if (draw_enabled && board.style.display !== 'none') {
       draw_input(x_new, y_new);
       btn_redo.disabled = true;
     }
-    if (move_enabled) {
-      move_board(x_new, y_new);
-    }
+    if (move_enabled) move_board(x_new, y_new);
   }
-}
-
-
-function draw_input(x_new, y_new) {
-  ctx.beginPath();
-  if (x > -1 && y > -1) {
-    ctx.moveTo(x, y);
-    line_draw = true;
-  }
-  x = x_new - x_offset;
-  y = y_new - y_offset;
-  //ctx.arc(x, y, _drawing.thickness / 2, 2 * Math.PI, false);
-  //ctx.fill();
-  size = ctx.lineWidth;
-  half = size / 2;
-  ctx.fillStyle = _drawing.color;
-  ctx.fillRect(x - half, y - half, size, size);
-  if (line_draw) {
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.closePath();
-  }
-  stroke.push([x, y]);
-  stroke_chunk.push([x, y]);
 }
 
 
@@ -96,9 +68,6 @@ function move_board(x_new=0, y_new=0) {
   board_wrapper.style.marginLeft = margin_x + 'px';
   board_wrapper.style.marginTop = margin_y + 'px';
   functions_bar.style.marginTop = -margin_y + 'px';
-  //board_wrapper.style.marginLeft = (x_offset + x_diff > 0 ? 0 : x_offset + x_diff) + 'px';
-  //board_wrapper.style.marginTop = (y_offset + y_diff > 0 ? 0 : y_offset + y_diff) + 'px';
-  //functions_bar.style.marginTop = (-y_offset - y_diff > 0 ? -y_offset - y_diff : 0) + 'px';
 }
 
 
@@ -123,6 +92,7 @@ function unclick() {
       _drawing.end_index = _drawing.segments.length - 1;
       stroke_arr.push(stroke);
       stroke = [];
+      fill_endpoint(ctx, x, y, _drawing.thickness, _drawing.color);
     }
     x = -1;
     y = -1;
@@ -132,12 +102,8 @@ function unclick() {
       board_wrapper.style.cursor = 'grab';
       x_offset += x_diff;
       y_offset += y_diff;
-      //x_offset += x_offset + x_diff > 0 ? -x_offset : x_diff;
-      //y_offset += y_offset + y_diff > 0 ? -y_offset : y_diff;
     }
-    if (stroke_chunk.length) {
-      send_draw_data([stroke_chunk], 'save');
-    }
+    if (stroke_chunk.length) send_draw_data([stroke_chunk], 'save');
     stroke_chunk = [];
   }
 }
@@ -169,9 +135,9 @@ function toggle_modes() {
   ];
   for (let group of btns) {
     let [btn, prop, cursor] = group;
-    let bool = (!(btn.dataset[prop] === 'true'));
-    btn.dataset[prop] = bool.toString();
-    if (bool) board_wrapper.style.cursor = cursor;
+    let mode_is_selected = (!(btn.dataset[prop] === 'true'));
+    btn.dataset[prop] = mode_is_selected.toString();
+    if (mode_is_selected) board_wrapper.style.cursor = cursor;
     btn.classList.toggle('btn-success');
     btn.classList.toggle('btn-dark');
   }
@@ -184,14 +150,12 @@ btn_undo.onclick = function() {
   let segments = null;
   if (_drawing.end_index > -1) {
     _drawing.end_index -= 1;
-    segments = draw_segments(_drawing);
+    segments = process_drawing_data(_drawing, draw=true);
     ctx.strokeStyle = _drawing.color;
     btn_redo.disabled = false;
     update_btn_clear_status(segments, end_index=_drawing.end_index);
   }
-  if (_drawing.end_index <= -1) {
-    this.disabled = true;
-  }
+  if (_drawing.end_index <= -1) this.disabled = true;
   send_draw_data(segments, 'undo');
 }
 
@@ -203,7 +167,7 @@ btn_redo.onclick = function() {
   }
   if (_drawing.end_index < _drawing.segments.length - 1) {
     _drawing.end_index += 1;
-    segments = draw_segments(_drawing);
+    segments = process_drawing_data(_drawing, draw=true);
     btn_undo.disabled = false;
     update_btn_clear_status(segments);
   }
@@ -227,50 +191,53 @@ btn_clear.onclick = function() {
 //----------------------------------------------------------------------------------------- >
 
 
-// a stroke is an array of [x, y] coordinate pairs,
-// and stroke_arr is an array of strokes
-function draw_strokes(stroke_arr, stroke_color, segment_thickness, ctx) {
-  for (let stroke of stroke_arr) {
-    for (let i = 0; i < stroke.length - 1; i++) {
-      ctx.strokeStyle = stroke_color;
-      ctx.lineWidth = segment_thickness;
-      ctx.beginPath();
-      let a = stroke[i];
-      let b = stroke[i + 1];
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-      ctx.stroke();
-      ctx.closePath();
-    }
+function draw_input(x_rel, y_rel) {
+  let x1 = x;
+  let y1 = y;
+  let x2 = x_rel - x_offset;
+  let y2 = y_rel - y_offset;
+  x = x2;
+  y = y2;
+  if (x1 > -1 && y1 > -1) {
+    draw_line(ctx, x1, y1, x2, y2, _drawing.thickness, _drawing.color);
+    fill_endpoint(ctx, x1, y1, _drawing.thickness, _drawing.color);
+    stroke.push([x2, y2]);
+    stroke_chunk.push([x2, y2]);
   }
 }
 
 
-function draw_segments(drawing) {
-  let _ctx;
-  let segments = drawing.segments;
-  if (drawing.hash === user_hash) _ctx = ctx;
-  else {
-    let ctx_id = create_board(drawing.nickname, drawing.hash);
-    _ctx = remote_boards[ctx_id].ctx;
-  }
-  _ctx.clearRect(0, 0, board.width, board.height);
-  if (drawing.end_index !== undefined) {
-    segments = segments.slice(0, drawing.end_index + 1);
-    let start_index = segments.lastIndexOf('CLEAR');
-    if (start_index > 0) {
-      segments = segments.slice(start_index);
+function draw_strokes(stroke_arr, stroke_color, segment_thickness, ctx) {
+  for (let stroke of stroke_arr) {
+    let x1, y1, x2, y2;
+    for (let i = 0; i < stroke.length - 1; i++) {
+      [x1, y1] = stroke[i];
+      [x2, y2] = stroke[i + 1];
+      draw_line(ctx, x1, y1, x2, y2, segment_thickness, stroke_color);
+      fill_endpoint(ctx, x1, y1, segment_thickness, stroke_color);
     }
+    fill_endpoint(ctx, x2, y2, segment_thickness, stroke_color);
   }
-  if (drawing.redraw) {
-    _ctx.clearRect(0, 0, board.width, board.height);
-  }
-  for (let segment of segments) {
-    if (segment !== 'CLEAR') {
-      draw_strokes([segment.coords], segment.color, segment.thickness, _ctx);
-    }
-  }
-  return segments;
+}
+
+
+function draw_line(ctx, x1, y1, x2, y2, thickness, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.closePath();
+}
+
+
+function fill_endpoint(ctx, x1, y1, thickness, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x1, y1, thickness / 2, 0, Math.PI * 2, false);
+  ctx.fill();
+  ctx.closePath();
 }
 
 

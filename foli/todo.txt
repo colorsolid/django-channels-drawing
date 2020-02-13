@@ -1,3 +1,7 @@
+Fix online status
+? Fix user list not updating sometimes (mobile? unable to re-add temporary user?)
+
+
 Labs
   Drawing
     * Users via email temp login links
@@ -19,6 +23,7 @@ Labs
       * Line thickness with corner smoothing
       * Full color picker
       * Re order drawings
+      * Axis lines
       Cycle through drawing's segments
       Fade/make opaque background drawings
       Middle mouse click/double tap to move
