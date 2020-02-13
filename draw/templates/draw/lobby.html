@@ -35,7 +35,7 @@
                {% if form.name.field.required %}required{% endif %}>
                {% if field.name == 'nickname' %}
                  <div class="input-group-append">
-                   <span id="hash-display" class="input-group-text">#{{ user_id|slice:'0:4' }}</span>
+                   <span id="hash-display" class="input-group-text">#{{ user_hash|slice:'0:4' }}</span>
                  </div>
                {% endif %}
                <div class="input-group-append">

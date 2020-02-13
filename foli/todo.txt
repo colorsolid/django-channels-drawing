@@ -1,3 +1,4 @@
+Undo causing first part of all segments to be removed, possibly not being saved in db
 Fix online status
 ? Fix user list not updating sometimes (mobile? unable to re-add temporary user?)
 

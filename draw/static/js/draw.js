@@ -201,9 +201,9 @@ function draw_input(x_rel, y_rel) {
   if (x1 > -1 && y1 > -1) {
     draw_line(ctx, x1, y1, x2, y2, _drawing.thickness, _drawing.color);
     fill_endpoint(ctx, x1, y1, _drawing.thickness, _drawing.color);
-    stroke.push([x2, y2]);
-    stroke_chunk.push([x2, y2]);
   }
+  stroke.push([x2, y2]);
+  stroke_chunk.push([x2, y2]);
 }
 
 
