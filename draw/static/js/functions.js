@@ -57,7 +57,7 @@ color_btns.forEach(btn => {
   }
 });
 
-var brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30];
+var brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 50, 75, 100, 150];
 
 brush_size_select.value = _drawing.thickness;
 for (let brush_size of brush_sizes) {

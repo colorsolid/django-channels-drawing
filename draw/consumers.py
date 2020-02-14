@@ -187,12 +187,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     def save(self, data):
+        max_thickness = 150
         self.drawing.end_index += 1
         self.drawing.save()
         self.drawing.board.save()
         self.drawing.segment_set.filter(index__gte=self.drawing.end_index).delete()
         thickness = int(data['stroke_width'])
-        thickness = 30 if thickness > 30 else thickness
+        thickness = max_thickness if thickness > max_thickness else thickness
         thickness = 1 if thickness < 0 else thickness
         segment = Segment(
             drawing = self.drawing,
