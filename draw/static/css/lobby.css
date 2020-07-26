@@ -1,0 +1,16 @@
+.input-group .input-group-text label {
+  margin-bottom: 0px !important;
+}
+
+.hidden {
+  display: none;
+}
+
+.pagination {
+  display: inline;
+}
+
+.pagination li {
+  display: inline;
+  padding: 5px;
+}

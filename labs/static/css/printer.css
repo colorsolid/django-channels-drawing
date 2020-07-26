@@ -1,0 +1,42 @@
+body {
+  background-color: var(--gray-dark);
+}
+
+#progress {
+  width: 60%;
+}
+
+#progress-bar {
+  width: 0%;
+  height: 21px;
+  background-color: #3095ac;
+  margin-top: -23px;
+  margin-left: 2px;
+}
+
+#progress-bar-outline {
+  width: 100%;
+  height: 25px;
+  border: solid 2px #1e1e1e;
+}
+
+#progress-percentage {
+  margin-top: -24px;
+}
+
+#webcam img {
+  max-width: 640px;
+}
+
+#connections {
+  background-color: #0007;
+  position: relative;
+  max-width: 640px;
+  margin: -24px auto 0;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+#webcam:hover #connections {
+  opacity: 100;
+}

@@ -1,0 +1,16 @@
+html, body {
+  height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  background-color: #0f0f0f;
+}
+
+.navbar {
+    background:transparent !important;
+}
+
+.navbar-sublink {
+  margin-left: 1rem;
+}

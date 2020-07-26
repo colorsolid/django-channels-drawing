@@ -1,0 +1,279 @@
+body {
+  background-color: #171717;
+  color: #dcdcdc;
+  overflow: hidden;
+}
+
+:root {
+  --board-bg-color: #809eb9;
+}
+
+.card-body {
+  padding: .75rem;
+}
+
+.no-select {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#body-wrapper {
+  padding-left: 0px !important;
+}
+
+.board {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.board-overlay {
+  z-index: 7;
+}
+
+.board-local {
+  z-index: 5;
+}
+
+.board-separator {
+  z-index: 2;
+}
+
+.board-separator-opaque {
+  background-color: #809eb999;
+}
+
+.board-remote {
+  z-index: 1;
+}
+
+#board-wrapper {
+  background-color: var(--board-bg-color);
+}
+
+.board-100 {
+  width: 4096px;
+  height: 4096px !important;
+}
+
+.board-75 {
+  width: 3072px;
+  height: 3072px !important;
+}
+
+.board-50 {
+  width: 2048px;
+  height: 2048px !important;
+}
+
+.board-25 {
+  width: 1024px;
+  height: 1024px !important;
+}
+
+#side-bar {
+  z-index: 20;
+  width: 312px;
+}
+
+.side-bar-behind {
+  z-index: 6 !important;
+  opacity: 0.5
+}
+
+#pos-x {
+  width: 49%;
+}
+
+.user-self {
+  background-color: #1b1b1c;
+}
+
+#user-list td {
+  padding: .25rem !important;
+}
+
+#user-list a {
+  padding: 0 .25rem !important;
+}
+
+#collapse-users {
+  max-height: 300px;
+  border-radius: 5px;
+  border: 1px solid #0d0e0f;
+}
+
+#user-list-inner {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 244px;
+}
+
+#user-list {
+  margin-bottom: 0 !important;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#collapse-users button {
+  padding: 0 .25rem !important;
+  width: 29px;
+}
+
+#collapse-users button:hover {
+  background-color: #23272b !important;
+  border-color: #1d2124 !important;
+}
+
+.table td, .table th {
+  border-top: 1px solid #0d0e0f;
+}
+
+#btn-collapse-all {
+  vertical-align: inherit !important;
+  padding: 0 !important;
+}
+
+.bd-dark {
+  border: 1px solid #0d0e0f;
+}
+
+.btn-mini {
+  padding: 0px 10px !important;
+}
+
+#btn-color-indicator {
+  margin-bottom: 4px;
+  transition: none !important;
+}
+
+#hue-gradient,
+#saturation-gradient,
+#luminosity-gradient {
+  height: 12px;
+}
+
+#hue-gradient:hover,
+#saturation-gradient:hover,
+#luminosity-gradient:hover {
+  cursor: pointer;
+}
+
+#hue-gradient {
+  background-image: linear-gradient(
+    to right,
+    rgb(255, 0, 0),
+    rgb(255, 255, 0),
+    rgb(0, 255, 0),
+    rgb(0, 255, 255),
+    rgb(0, 0, 255),
+    rgb(255, 0, 255),
+    rgb(255, 0, 0)
+  );
+}
+
+#saturation-gradient {
+  background-image: linear-gradient(
+      to right,
+      rgb(255, 0, 0),
+      rgb(127, 127, 127)
+    );
+}
+
+#luminosity-gradient {
+  background-image: linear-gradient(
+      to right,
+      rgb(0, 0, 0),
+      rgb(255, 0, 0),
+      rgb(255, 255, 255)
+    );
+}
+
+.slider {
+  width: 11px;
+  height: 0px;
+  border-radius: 4px;
+  border-left: solid transparent 5px;
+  border-right: solid transparent 5px;
+  border-bottom: solid white 8px;
+  position: absolute;
+  visibility: hidden;
+}
+
+#hue-gradient-slider {
+  left: 15px;
+  top: 112px;
+}
+
+#saturation-gradient-slider {
+  left: 15px;
+  top: 150px;
+}
+
+#luminosity-gradient-slider {
+  left: 15px;
+  top: 195px;
+}
+
+.mid-col {
+  width: 180px;
+}
+
+.group-header td, .group-header th {
+  position: sticky;
+  top: 0;
+  border-top: 0 !important;
+  border-bottom: solid 1px black;
+}
+
+.table td, .table th {
+  padding: 3px 0px 0px 0px !important;
+}
+
+.section-btn span,
+#toggle-side-bar-lower-btn span {
+  display: inline-block;
+  transition: 0.5s transform;
+}
+
+.nickname {
+  max-width: 144px;
+}
+
+.section-expanded {
+  transform: rotate(180deg);
+}
+
+#side-bar-lower {
+  transition: translate 0.25s, opacity 0.5s;
+}
+
+#side-bar-lower.hidden {
+  translate: -500px 0px;
+  opacity: 0;
+}
+
+button.header-link {
+  background: none;
+  border: none;
+}
+
+.arrow-up {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid white;
+}
+
+.arrow-right {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 10px solid white;
+}

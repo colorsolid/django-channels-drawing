@@ -1,0 +1,22 @@
+{% extends 'foli/base.html' %}
+
+{% load static %}
+
+{% block title %}send login link{% endblock %}
+
+{% block head_extend %}
+  <link rel="stylesheet" type="text/css" href="{% static 'css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+  {% include 'foli/nav.html' %}
+  <div class="row border-top border-secondary">
+    <form action="{% url 'email' %}" method="POST" class="post-form">{% csrf_token %}
+      <input name="address"></input>
+      <button type="submit">submit</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

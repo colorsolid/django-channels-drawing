@@ -1,0 +1,60 @@
+#header-frame {
+  background-image: linear-gradient(to bottom, #a3476f, #82537f 20%, #596394 50%);
+}
+
+.letter {
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 70px;
+}
+
+.black {
+  fill: #0c0c0c;
+}
+
+.white {
+  fill-rule: nonzero;
+  fill: #dcdcdc;
+  fill-opacity: 0.5;
+}
+
+.grey {
+  fill: #343a40;
+}
+
+.word-red {
+  fill: #ff000099;
+}
+
+.red {
+  fill: #f45e4e;
+}
+
+.green {
+  fill: #73ec7b;
+}
+
+.blue {
+  fill: #739dec;
+}
+
+.word-blue {
+  fill: #0000ff;
+}
+
+.pink {
+  fill: #ec73ea;
+}
+
+#logo {
+  position: relative;
+  z-index: 2;
+  padding: 10px;
+}
+
+#logo2 {
+  position: absolute;
+  z-index: 1;
+  top: 0px;
+  left: 0px;
+}
