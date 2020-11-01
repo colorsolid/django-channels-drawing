@@ -1,10 +1,9 @@
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('3d/', views.printer, name='printer'),
-    path('3dprint/', views.redirect_view, name='redirect'),
-    path('3dprinter/', views.redirect_view, name='redirect')
+    re_path(r'^3d(print(er)?)?\/?$', views.printer, name='printer'),
+    re_path(r'^pass_chat/(?P<room_name>[\w\d_]+)\/?$', views.pass_chat, name='redirect')
 ]

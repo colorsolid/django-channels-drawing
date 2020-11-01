@@ -5,7 +5,7 @@
 
 const _loc = window.location;
 
-var _connection_id = null;
+let _connection_id = null;
 
 function start_socket(full_url=null, loc_rel=null) {
   let endpoint = '';
@@ -37,7 +37,7 @@ function start_socket(full_url=null, loc_rel=null) {
 
   socket.onmessage = function(e) {
     let data = JSON.parse(e.data);
-    parse_data(data);
+    handle_data(data);
   }
   return socket;
 }

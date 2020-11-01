@@ -2,15 +2,14 @@ window.onload = function() {
   window.scrollTo(0, 0);
 }
 
-var _drawing = {
+let _drawing = {
   segments: [],
   end_index: -1,
   color: '#00ff00',
   thickness: 3,
   drawing_group: '* * M A I N * *',
   hash: _user_hash,
-  nickname: _nickname,
-  self: true
+  nickname: _nickname
 };
 
 const $ = function(selector, parent) {
@@ -41,7 +40,7 @@ const _ctx = _board.getContext('2d');
 _ctx.strokeStyle = _drawing.color;
 _ctx.lineWidth = _drawing.thickness;
 
-var _boards = {
+let _boards = {
   [_user_hash]: {
     ctx: _ctx,
     board: _board
@@ -49,7 +48,7 @@ var _boards = {
 };
 
 const _user_display = $('#user-list tbody');
-var _groups = {};
+let _groups = {};
 
 const _side_bar = $('#side-bar');
 const _side_bar_lower = $('#side-bar-lower');
@@ -67,10 +66,10 @@ const _btn_redo = $('#btn-redo');
 const _btn_clear = $('#btn-clear');
 const _brush_size_select = $('#brush-size-select');
 
-var _rect = _board.getBoundingClientRect();
+let _rect = _board.getBoundingClientRect();
 
-var _draw_enabled = false;
-var _move_enabled = true;
+let _draw_enabled = false;
+let _move_enabled = true;
 
 _color_btns.forEach(btn => {
   btn.style.color = btn.dataset.color;
@@ -103,7 +102,7 @@ function clear_selection() {
 }
 
 function reset_sliders() {
-  [_hue_gradient, _saturation_gradient, _luminosity_gradient].map(g => {move_slider(g)})
+  [_hue_gradient, _saturation_gradient, _luminosity_gradient].map(g => {move_slider(g)});
 }
 
 function change_color(color) {
@@ -112,7 +111,7 @@ function change_color(color) {
   _ctx.strokeStyle = _drawing.color;
 }
 
-var _brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 50, 75, 100, 150];
+let _brush_sizes = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 50, 75, 100, 150];
 
 _brush_size_select.value = _drawing.thickness;
 for (let brush_size of _brush_sizes) {
@@ -132,33 +131,31 @@ window.onresize = function() {
 
 function update_redo_btn_status(drawing, status=null) {
   if (status !== null) _btn_redo.disabled = status;
-  else {
-    if (_drawing.segments.length) {
-      if (_drawing.end_index < _drawing.segments.length - 1) {
-        _btn_redo.disabled = false;
-      }
-      if (_drawing.end_index > -1) _btn_undo.disabled = false;
+  else if (_drawing.segments.length) {
+    if (_drawing.end_index < _drawing.segments.length - 1) {
+      _btn_redo.disabled = false;
     }
+    if (_drawing.end_index > -1) _btn_undo.disabled = false;
   }
 }
 
-function update__btn_clear_status(segments, end_index=null, status=null) {
+function update_btn_clear_status(segments, end_index=null, status=null) {
   if (status !== null) _btn_clear.disabled = status;
   else if (end_index === -1) _btn_clear.disabled = true;
-  else {
-    if (segments && segments.length) {
-      if (segments.length > 1
-      || segments.length === 1
-      && segments[0] !== 'CLEAR') {
-        _btn_clear.disabled = false;
-      }
-      else _btn_clear.disabled = true;
+  else if (segments && segments.length) {
+    if (segments.length > 1
+    || segments.length === 1
+    && segments[0] !== 'CLEAR') {
+      _btn_clear.disabled = false;
     }
+    else _btn_clear.disabled = true;
   }
 }
 
-function parse_data(data) {
-  let segments = null;
+// still broken, completed segments need to be sent to other session on save
+
+function handle_data(data) {
+  console.log('rcv', data, _connection_id);
   if (data.drawings) {
     for (let drawing of data.drawings) {
       if ('self' in drawing) {
@@ -166,9 +163,9 @@ function parse_data(data) {
         _color_indicator.style.backgroundColor = _drawing.color;
         _brush_size_select.value = _drawing.thickness;
       }
-      segments = process_drawing_data(drawing, draw=true);
+      process_drawing_data(drawing, draw=true);
     }
-    update__btn_clear_status(_drawing.segments, _drawing.end_index);
+    update_btn_clear_status(_drawing.segments, _drawing.end_index);
     if (_drawing.segments.length) {
       if (_drawing.end_index < _drawing.segments.length - 1) {
         _btn_redo.disabled = false;
@@ -179,7 +176,8 @@ function parse_data(data) {
   if (data.set_connection_id && _connection_id === null) {
     _connection_id = data.set_connection_id;
   }
-  if (data.stroke_arr) {
+  if (data.stroke_arr !== undefined || data.redraw !== undefined) {
+    multi_session_fix(data);
     let ctx = null;
     if (data.overlay) {
       ctx = _overlay_ctx;
@@ -188,23 +186,71 @@ function parse_data(data) {
       create_board(data.hash);
       ctx = _boards[data.hash].ctx;
     }
-    draw_strokes(
-      data.stroke_arr, data.stroke_color,
-      data.stroke_width, ctx
-    );
+    console.log('test')
+    if (data.stroke_arr) {
+      draw_strokes(
+        data.stroke_arr, data.stroke_color,
+        data.stroke_width, ctx
+      );
+    }
+    console.log('test 2')
   }
-  if (data.note) update_users(data);
+  if (data.action) update_users(data);
   if (data.clear) {
     let ctx = _boards[data.hash].ctx;
     ctx.clearRect(0, 0, _board.width, _board.height);
   }
   if (data.segments && data.redraw) {
+    console.log('processing')
     process_drawing_data(data, draw=true);
+    console.log('complete');
   }
 }
 
+let _temp_segment = null;
 
-// assign ctx, trim segments, clear board || CLEAN UP
+function multi_session_fix(data) {
+  console.log('multi')
+  if (data.self !== undefined) {
+    console.log('fixing', _temp_segment)
+    if ('clear' in data) _drawing.segments.push('CLEAR')
+    if (!('redraw' in data)) {
+      if (_temp_segment === null) {
+        _temp_segment = {
+          color: data.stroke_color,
+          coords: data.stroke_arr[0],
+          thickness: data.stroke_width
+        };
+      }
+      else {
+        _temp_segment.coords.push.apply(
+          _temp_segment.coords, data.stroke_arr[0].slice(1)
+        );
+      }
+    }
+    console.log(data.end_index, data.segment_count)
+    if (data.end_index !== undefined && data.segment_count !== undefined) {
+      console.log('segment end', data.end_index)
+      _drawing.end_index = data.end_index;
+      if (_drawing.segments.length > data.segment_count) {
+        _drawing.segments = _drawing.segments.slice(0, data.segment_count);
+      }
+      if (_temp_segment !== null) _drawing.segments.push(_temp_segment);
+      _temp_segment = null;
+    }
+    if (_drawing.end_index > -1) _btn_undo.disabled = false;
+    else _btn_undo.disabled = true;
+    if (_drawing.end_index < _drawing.segments.length - 1) {
+      _btn_redo.disabled = false;
+    }
+    else _btn_redo.disabled = true;
+    if (_drawing.end_index === -1 || _drawing.segments[_drawing.end_index] === 'CLEAR') {
+      _btn_clear.disabled = true;
+    }
+    else _btn_clear.disabled = false;
+  }
+}
+
 function process_drawing_data(drawing, draw=false) {
   let ctx;
   let segments = drawing.segments;
@@ -228,14 +274,12 @@ function process_drawing_data(drawing, draw=false) {
   return segments;
 }
 
-
 function update_users(data) {
-  if (data.note === 'load') user_load(data);
-  if (data.note === 'connected') user_connect(data);
-  if (data.note === 'update') user_update(data);
-  if (data.note === 'disconnected') user_disconnected(data);
+  if (data.action === 'load') user_load(data);
+  if (data.action === 'connected') user_connect(data);
+  if (data.action === 'update') user_update(data);
+  if (data.action === 'disconnected') user_disconnected(data);
 }
-
 
 function user_load(data) {
   clear_loading();
@@ -268,7 +312,6 @@ function user_load(data) {
   }
 }
 
-
 function user_connect(data) {
   let new_group = false;
   let group_name = '* * M A I N * *';
@@ -297,14 +340,11 @@ function user_connect(data) {
   if (data.hash !== _user_hash) create_board(data.hash);
 }
 
-
 function user_update(data) {
   //console.log('update', data);
 }
 
-
 function user_disconnected(data) {
-  // find user in group and change online color
   let disp = $('#hash-display-' + data.hash);
   if (disp !== null) {
     disp.classList.remove('bg-danger');
@@ -312,8 +352,11 @@ function user_disconnected(data) {
   }
 }
 
-
-function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=true, before=0) {
+// shorthand creation and placement of DOM elements
+function el(
+    type, inner='', classname='', attrs={},
+    parent=undefined, pos_end=true, before=0
+  ) {
   let elem = document.createElement(type);
   elem.innerHTML = inner;
   if (classname.length) elem.className = classname;
@@ -323,9 +366,7 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
     if (pos_end) parent.appendChild(elem);
     else {
       let rel_elem = before;
-      if (typeof before === 'number') {
-        rel_elem = parent.childNodes[before];
-      }
+      if (typeof before === 'number') rel_elem = parent.childNodes[before];
       if (rel_elem) parent.insertBefore(elem, rel_elem);
       else parent.appendChild(elem);
     }
@@ -333,7 +374,7 @@ function el(type, inner='', classname='', attrs={}, parent=undefined, pos_end=tr
   return elem;
 }
 
-
+// build elements for a group of users in the user list
 function build_group_elements(group_name) {
   let group = _groups[group_name];
   let headers = $$('.group-header', _user_display);
@@ -357,7 +398,8 @@ function build_group_elements(group_name) {
   }
 }
 
-
+// check for existing element. decide whether to update if it exists
+// or create if it doesn't
 function check_user_elements(user, group_name, connected=false) {
   let user_display_id = `user-display-${user.hash}`;
   let user_tr = document.getElementById(user_display_id);
@@ -365,7 +407,7 @@ function check_user_elements(user, group_name, connected=false) {
   else update_user_elements(user, group_name, user_tr);
 }
 
-
+// build elements for a user in the user find_index_in_user_list
 function build_user_elements(user, group_name, connected=false) {
   let user_tr = el(
     'tr', '',
@@ -386,7 +428,6 @@ function build_user_elements(user, group_name, connected=false) {
       title: user.nickname
     }, user_tr);
   el(
-    //'span', `<a class="text-white" href="../artist/${user.hash}">#${user.hash.substr(0, 4)}</a>`,
     'span', `#${user.hash.substr(0, 4)}`,
     'badge badge-hash bd-dark ' + (connected ? 'badge-danger' : 'badge-secondary'),
     {id: 'hash-display-' + user.hash, title: '#' + user.hash},
@@ -406,7 +447,6 @@ function build_user_elements(user, group_name, connected=false) {
     el('td', '', '', {}, user_tr)
   ).onclick = toggle_user;
 }
-
 
 function update_user_elements(user, group_name, user_tr) {
   let nickname = $('.nickname', user_tr);
@@ -446,7 +486,6 @@ function find_index_in_user_list(user) {
   return index;
 }
 
-
 function toggle_minimize() {
   this.blur();
   let display = toggle_btn(this, null, '&#9634;', '-', '', 'table-row');
@@ -455,7 +494,6 @@ function toggle_minimize() {
   rows = rows.filter(r => (r.dataset.group === group_name));
   for (let row of rows) row.style.display = display;
 }
-
 
 function toggle_group(btn=null, display=null, simple=true) {
   this.blur();
@@ -472,7 +510,6 @@ function toggle_group(btn=null, display=null, simple=true) {
     }
   }
 }
-
 
 function toggle_user(btn=null, display=null, simple=true) {
   if (!('dataset' in btn && 'hash' in btn.dataset)) {
@@ -495,7 +532,6 @@ function toggle_user(btn=null, display=null, simple=true) {
   }
 }
 
-
 function toggle_btn(btn, display=null, a='o', b='&oslash;', c='&nbsp;', v='block') {
   if (display === null) display = btn.dataset.display === 'none' ? v : 'none';
   btn.dataset.display = display;
@@ -510,7 +546,6 @@ function toggle_btn(btn, display=null, a='o', b='&oslash;', c='&nbsp;', v='block
   btn.innerHTML = c + (display === 'none' ? b : a) + c;
   return display;
 }
-
 
 function toggle_z(btn) {
   btn.blur();
@@ -528,7 +563,6 @@ function toggle_z(btn) {
   }
 }
 
-
 function create_board(hash) {
   let dict;
   if (!(hash in _boards)) {
@@ -544,9 +578,9 @@ function create_board(hash) {
   }
 }
 
-var _hue_gradient = $('#hue-gradient');
-var _saturation_gradient = $('#saturation-gradient');
-var _luminosity_gradient = $('#luminosity-gradient');
+let _hue_gradient = $('#hue-gradient');
+let _saturation_gradient = $('#saturation-gradient');
+let _luminosity_gradient = $('#luminosity-gradient');
 
 _hue_gradient.slider = $('#hue-gradient-slider');
 _hue_gradient.slider.style.top = (_hue_gradient.offsetTop + 14) + 'px';
@@ -555,9 +589,9 @@ _saturation_gradient.slider.style.top = (_saturation_gradient.offsetTop + 14) + 
 _luminosity_gradient.slider = $('#luminosity-gradient-slider');
 _luminosity_gradient.slider.style.top = (_luminosity_gradient.offsetTop + 14) + 'px';
 
-var _hue_x = 1;
-var _saturation_x = 0;
-var _luminosity_x = 0;
+let _hue_x = 1;
+let _saturation_x = 0;
+let _luminosity_x = 0;
 
 _hue_gradient.colors = [
   [255, 0, 0],
@@ -581,14 +615,14 @@ _luminosity_gradient.colors = [
 ];
 
 function dec_to_hex (dec) {
-  var hex = Number(dec).toString(16);
+  let hex = Number(dec).toString(16);
   if (hex.length < 2) {
        hex = '0' + hex;
   }
   return hex;
 };
 
-var _gradient_clicked = null;
+let _gradient_clicked = null;
 
 document.body.onmousemove = event => {
   if (_gradient_clicked !== null) {
@@ -644,9 +678,9 @@ function gradient_slide(clientX, gradient) {
 }
 
 function get_click_data(clientX, gradient) {
-  var gradient_points = gradient.colors.map((c, i) => (i / (gradient.colors.length - 1)));
+  let gradient_points = gradient.colors.map((c, i) => (i / (gradient.colors.length - 1)));
 
-  var gradient_diffs = [];
+  let gradient_diffs = [];
 
   for (let i = 0; i < gradient.colors.length - 1; i++) {
     let point_a = gradient.colors[i];
@@ -720,6 +754,11 @@ function send_draw_data(arr, type='draw') {
       stroke_color: _ctx.strokeStyle,
       stroke_width: _ctx.lineWidth
   };
+  if (['save', 'clear', 'redo', 'undo'].includes(type)) {
+    msg.end_index = _drawing.end_index;
+    msg.segment_count = _drawing.segments.length;
+  }
+  console.log('send', msg)
   _socket.send(JSON.stringify(msg));
 }
 
@@ -731,15 +770,12 @@ function toggle_colors(btn, event) {
   }
   if (_side_bar_lower.dataset.visible === 'false') {
     $('#toggle-side-bar-btn').click();
-    if (!$('#collapse-colors').classList.contains('show')) {
-      click();
-    }
+    if (!$('#collapse-colors').classList.contains('show')) click();
   }
   else click();
 }
 
 function toggle_options(btn, event, cb=null) {
-  console.log('toggle', btn);
   btn.blur();
   let span = $('span', btn);
   span.classList.toggle('section-expanded');
@@ -754,7 +790,7 @@ function toggle_options(btn, event, cb=null) {
   }
 }
 
-var visibility_timer = null;
+let visibility_timer = null;
 
 function clear_timer(timer) {
   if (timer) {

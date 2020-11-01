@@ -24,10 +24,6 @@ body {
   margin-top: -24px;
 }
 
-#webcam img {
-  max-width: 640px;
-}
-
 #connections {
   background-color: #0007;
   position: relative;

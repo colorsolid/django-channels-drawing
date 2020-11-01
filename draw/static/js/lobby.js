@@ -10,7 +10,7 @@ const room_creator_display = document.getElementById('room-creator-display');
 const join_btn = document.getElementById('join-btn');
 const room_btn_list = [].slice.call(document.getElementsByClassName('room-btn'));
 
-var selected_room = '';
+let selected_room = '';
 
 let nickname_i = 0;
 let room_name_i = 0;
@@ -67,11 +67,11 @@ function room_selected() {
 }
 
 function get_cookie(name) {
-    var cookie_value = null;
+    let cookie_value = null;
     if (document.cookie && document.cookie !== '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = cookies[i].trim();
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
             // Does this cookie string begin with the name we want?
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookie_value = decodeURIComponent(cookie.substring(name.length + 1));
@@ -81,12 +81,12 @@ function get_cookie(name) {
     }
     return cookie_value;
 }
-var csrftoken = get_cookie('csrftoken');
+let csrftoken = get_cookie('csrftoken');
 
 function request_data(button) {
   button.blur();
-  var xhr = new XMLHttpRequest();
-  var room_name = document.getElementById('id_search_name').value;
+  let xhr = new XMLHttpRequest();
+  let room_name = document.getElementById('id_search_name').value;
   selected_room = room_name;
   room_name_input.setAttribute('value', room_name);
   update_selection();
@@ -120,8 +120,8 @@ function request_data(button) {
 }
 
 function join_room() {
-  var xhr = new XMLHttpRequest();
-  var nickname = document.getElementById('id_nickname').value;
+  let xhr = new XMLHttpRequest();
+  let nickname = document.getElementById('id_nickname').value;
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
       let r = JSON.parse(xhr.response);

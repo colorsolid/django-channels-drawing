@@ -18,8 +18,8 @@
   <body class="text-center">
     <div id="body-wrapper" class="container-fluid overflow-hidden">
       {% block content %}{% endblock %}
-      <script src="{% static 'js/jquery-3.4.1.min.js' %}" type="text/javascript"></script>
-      <script src="{% static 'js/bootstrap.bundle.min.js' %}" type="text/javascript"></script>
+      <script src="{{ root }}{% static 'js/jquery-3.4.1.min.js' %}" type="text/javascript"></script>
+      <script src="{{ root }}{% static 'js/bootstrap.bundle.min.js' %}" type="text/javascript"></script>
       {% block scripts %}{% endblock %}
     </div>
   </body>

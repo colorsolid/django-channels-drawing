@@ -1,4 +1,9 @@
+import json
+import os
+import re
+
 from datetime import datetime
+from decouple import config
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
@@ -8,14 +13,10 @@ from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 from django.utils import timezone
 from draw.utils import get_context
-from foli.utils import random_string, random_phrase
+from foli.utils import random_string, random_phrase, env
 from labs.utils import get_random_colors
-
 from .forms import DrawingBoardSearchForm, ArtistForm
 from .models import Artist, DrawingBoard
-
-import json
-import re
 
 
 def lobby(request, context={}):
@@ -35,12 +36,13 @@ def lobby(request, context={}):
         context['forms'] = [artist_form, drawing_board_form]
     sort_by = request.GET.get('sortby')
     if sort_by == 'newest':
-        room_list = DrawingBoard.objects.all().order_by('date_created').reverse()
+        room_list = DrawingBoard.objects.all() \
+        .order_by('date_created').reverse()
     else:
         sort_by = 'popular'
         room_list = DrawingBoard.objects.all() \
-            .annotate(count=Count('drawing__segment')) \
-            .order_by('count').reverse()
+        .annotate(count=Count('drawing__segment')) \
+        .order_by('count').reverse()
 
     page = request.GET.get('page', 1)
 
@@ -57,11 +59,12 @@ def lobby(request, context={}):
     context['rooms'] = rooms
     context['sort_by'] = sort_by
     context['room_num_offset'] = (num - 1) * 10
+    context['root'] = env('ROOT')
     return render(request, 'draw/lobby.html', context)
 
 
 def draw(request):
-    context = {}
+    context = {'root': env('ROOT')}
     if request.method == 'POST' and request.body:
         if 'nickname' in request.POST and 'name' in request.POST:
             nickname = request.POST['nickname']
@@ -114,6 +117,7 @@ def room(request, room_name):
         return redirect(f'/draw/room/{slugify(room_name)}')
     else:
         context['room_name'] = mark_safe(room_name)
+        context['root'] = env('ROOT')
         request.session['last_room_name'] = room_name
         return render(request, 'draw/draw.html', context)
 
@@ -141,7 +145,8 @@ def profile(request, hash):
             artist = None
         context = {
             'hash': mark_safe(hash),
-            'sublink': 'draw'
+            'sublink': 'draw',
+            'root': env('ROOT')
         }
         if artist:
             context['nickname'] = artist.nickname

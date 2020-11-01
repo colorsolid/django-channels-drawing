@@ -14,20 +14,27 @@ const elements = {
 const _kb = 1024;
 const _mb = _kb * 1024;
 
-var _connections = 0;
+let _connections = 0;
 
 let verify = (data, name) => ((name in data && data[name] !== null));
 
-function parse_data(data) {
+function handle_data(data) {
   let keys = Object.keys(data);
-  for (let key of keys) {
-    let el = elements[key];
-    let val = data[key];
-    try {
-      eval(el.dataset.func)(val, el)
+  if ('message' in data) {
+    if (data.message === 'printer-disconnected') {
+      reset_displays();
     }
-    catch (e) {
-      el.innerText = val;
+  }
+  else {
+    for (let key of keys) {
+      let el = elements[key];
+      let val = data[key];
+      try {
+        eval(el.dataset.func)(val, el);
+      }
+      catch (e) {
+        el.innerText = val;
+      }
     }
   }
 }

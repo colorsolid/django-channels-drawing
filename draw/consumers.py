@@ -1,14 +1,20 @@
-from    channels.generic.websocket import AsyncWebsocketConsumer
-import  channels.layers
-from    django.contrib.sessions.backends.db import SessionStore
-from    django.db.models import F
-import  draw.utils as ut
-import  json
-import  os
-import  random
-import  string
-from    foli.utils import random_string
-from    .models import DrawingBoard, Artist, Drawing, Segment
+import channels.layers
+import draw.utils as ut
+import json
+import os
+import random
+import string
+
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.sessions.backends.db import SessionStore
+from django.db.models import F
+from foli.utils import random_string
+from .models import DrawingBoard, Artist, Drawing, Segment
+
+
+# FIX UNDO, REDO, CLEAR DESYNC ON SAME USER WITH MULTIPLE CONNECTION IDS (sync segment index and update buttons)
+# send end_index on undo, redo, clear, and save to user_id excluding connection_id
 
 
 class DrawConsumer(AsyncWebsocketConsumer):
@@ -29,68 +35,7 @@ class DrawConsumer(AsyncWebsocketConsumer):
             await self.close()
         else:
             await self.accept()
-            self.room_name = self.scope['url_route']['kwargs']['room_name'].lower()
-            if not self.room_name in self.channel_layer.user_list:
-                self.channel_layer.user_list[self.room_name] = []
-            self.room_group_name = 'draw_' + self.room_name
-            try:
-                self.board = DrawingBoard.objects.get(name=self.room_name)
-            except DrawingBoard.DoesNotExist:
-                self.board = None
-            try:
-                self.artist = Artist.objects.get(user_id=self.user_id)
-                if self.artist.nickname != self.nickname:
-                    self.artist.nickname = self.nickname
-                    self.artist.save()
-            except Artist.DoesNotExist:
-                self.artist = None
-            self.drawing = None
-            self.end_index = 0
-            if self.board and self.artist:
-                try:
-                    self.drawing = Drawing.objects.get(artist=self.artist, board=self.board)
-                    self.end_index = self.drawing.end_index
-                    segments = self.drawing.segment_set.all()
-                    l = len(segments)
-                    if self.end_index >= l:
-                        for i, segment in enumerate(segments.order_by('index')):
-                            segment.index = i
-                            segment.save()
-                        self.end_index = l - 1
-                        self.drawing.end_index = self.end_index
-                        self.drawing.save()
-                except Drawing.DoesNotExist:
-                    pass
-            await self.send_load_data()
-            await self.add_user()
-            self.segment_coords = []
-            self.add_board_and_artist()
-
-
-    async def send_load_data(self):
-        users = self.channel_layer.user_list[self.room_name]
-        _users = []
-        for user in users:
-            _user = {
-                'nickname': user['nickname'],
-                'hash': user['user_id'][0:12],
-                'group': '* * M A I N * *'
-            }
-            _users.append(_user)
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-        data = {
-            'note': 'load',
-            'set_connection_id': self.connection_id,
-            'users': _users
-        }
-        if self.board:
-            drawings = ut.get_drawings(self.board, self.user_id)
-            if drawings:
-                data['drawings'] = drawings
-        await self.send_data_no_type(data)
+            await self.load_room_data()
 
 
     async def disconnect(self, close_code):
@@ -105,56 +50,156 @@ class DrawConsumer(AsyncWebsocketConsumer):
     # message from client, data['type'] calls named function
     async def receive(self, text_data):
         data = json.loads(text_data)
-        data = ut.clean_data(data)
+        data = ut.clean_data(data, ['self', 'redraw'])
+        if data['type'] == 'draw':
+            data = ut.clean_data(data, ['end_index'])
         data['connection_id'] = self.connection_id
         data['hash'] = self.hash
         data['nickname'] = self.nickname
         if not self.artist:
-            self.artist = ut.try_artist(self.user_id, self.nickname)
+            self.artist = await ut.try_artist(self.user_id, self.nickname)
         if not self.board:
-            self.board = ut.try_board(self.room_name, self.artist)
+            self.board = await ut.try_board(self.room_name, self.artist)
             self.board.board_artists.add(self.artist)
         if not self.drawing:
-            self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
+            self.drawing, created = await database_sync_to_async(
+                Drawing.objects.get_or_create
+            )(artist=self.artist, board=self.board)
         if 'stroke_arr' in data:
-            if data['stroke_arr'] and data['type'] in ['draw', 'save']:
-                self.segment_coords += data['stroke_arr'][0]
-                if data['type'] == 'save':
-                    self.save(data)
-                    data['type'] = 'draw'
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    data
-                )
-            if data['type'] == 'clear':
-                self.clear()
+            await self.handle_draw_data(data)
+
+
+    async def load_room_data(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name'].lower()
+        if not self.room_name in self.channel_layer.user_list:
+            self.channel_layer.user_list[self.room_name] = []
+        self.room_group_name = 'draw_' + self.room_name
+        try:
+            self.board = await database_sync_to_async(
+                DrawingBoard.objects.get
+            )(name=self.room_name)
+        except DrawingBoard.DoesNotExist:
+            self.board = None
+        try:
+            self.artist = await database_sync_to_async(
+                Artist.objects.get
+            )(user_id=self.user_id)
+            if self.artist.nickname != self.nickname:
+                self.artist.nickname = self.nickname
+                self.artist.save()
+        except Artist.DoesNotExist:
+            self.artist = None
+        self.drawing = None
+        self.end_index = 0
+        if self.board and self.artist:
+            self.load_self_drawings()
+        await self.send_load_data()
+        await self.add_user()
+        self.segment_coords = []
+        await self.add_board_and_artist()
+
+
+    @database_sync_to_async
+    def load_self_drawings(self):
+        try:
+            self.drawing = Drawing.objects.get(
+                artist=self.artist, board=self.board
+            )
+            self.end_index = self.drawing.end_index
+            segments = self.drawing.segment_set.all()
+            segment_length = len(segments)
+            if self.end_index >= segment_length:
+                for i, segment in enumerate(segments.order_by('index')):
+                    segment.index = i
+                    segment.save()
+                self.end_index = segment_length - 1
+                self.drawing.end_index = self.end_index
+                self.drawing.save()
+        except Drawing.DoesNotExist:
+            pass
+
+
+    async def send_load_data(self):
+        users = self.channel_layer.user_list[self.room_name]
+        user_data_clean = ut.clean_users(users)
+        data = {
+            'action': 'load',
+            'set_connection_id': self.connection_id,
+            'users': user_data_clean
+        }
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        if self.board:
+            drawings = await ut.get_drawings(self.board, self.user_id)
+            if drawings:
+                data['drawings'] = drawings
+        await self.clean_and_send_data(data)
+
+
+    async def add_board_and_artist(self):
+        if not self.artist:
+            self.artist = await ut.try_artist(self.user_id, self.nickname)
+        if not self.board:
+            self.board = await ut.try_board(self.room_name, self.artist)
+            await database_sync_to_async(self.board.board_artists.add)(self.artist)
+        if not self.drawing:
+            self.drawing, created = await database_sync_to_async(Drawing.objects.get_or_create)(
+                artist=self.artist, board=self.board
+            )
+
+
+    async def handle_draw_data(self, data):
+        if data['stroke_arr'] and data['type'] in ['draw', 'save']:
+            self.segment_coords += data['stroke_arr'][0]
+            if data['type'] == 'save':
+                await self.save(data)
                 data['type'] = 'draw'
-                data['clear'] = True
-                data['redraw'] = True
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    data
-                )
-            if data['type'] == 'undo':
-                if self.undo(data):
-                    await self.redraw(data)
-            if data['type'] == 'redo':
-                if self.redo(data):
-                    await self.redraw(data)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                data
+            )
+        if data['type'] == 'clear':
+            await self.clear()
+            data['type'] = 'draw'
+            data['clear'] = True
+            data['redraw'] = True
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                data
+            )
+        if data['type'] == 'undo':
+            if await self.undo(data):
+                await self.redraw(data)
+        if data['type'] == 'redo':
+            if await self.redo(data):
+                await self.redraw(data)
 
 
-    async def send_data_no_type(self, data):
-        d = {k:data[k] for k in data if k !='type'}
-        await self.send(text_data=json.dumps(d))
+    async def clean_and_send_data(self, data):
+        print('cas', self.user_id)
+        data = ut.clean_data(data, ['user_id', 'type'])
+        await self.send(text_data=json.dumps(data))
 
 
-    # message to client, called data['type'] in receive()
+    # send drawing data to client
     async def draw(self, data):
+        print(self.connection_id, 'draw')
         if data['connection_id'] != self.connection_id:
-            await self.send(text_data=json.dumps(data))
+            i, user, user_list = ut.get_channel_user(self)
+            # same user different session
+            suds = (data['connection_id'] in user['connection_ids'])
+            print(self.connection_id, user['connection_ids'], suds)
+            if not suds:
+                data = ut.clean_data(data, ['end_index', 'segment_count'])
+            else:
+                data['self'] = True
+            await self.clean_and_send_data(data)
 
 
     async def redraw(self, data):
+        print(self.connection_id, 'redraw')
         data['type'] = 'draw'
         data['redraw'] = True
         data['segments'] = data.pop('stroke_arr')
@@ -164,16 +209,33 @@ class DrawConsumer(AsyncWebsocketConsumer):
         )
 
 
-    def add_board_and_artist(self):
-        if not self.artist:
-            self.artist = ut.try_artist(self.user_id, self.nickname)
-        if not self.board:
-            self.board = ut.try_board(self.room_name, self.artist)
-            self.board.board_artists.add(self.artist)
-        if not self.drawing:
-            self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
+    @database_sync_to_async
+    def undo(self, data, *args):
+        if self.drawing.end_index > -1:
+            self.drawing.end_index -= 1
+            self.drawing.save()
+            self.drawing.board.save()
+            return True
+        return False
 
 
+    def update_end_index(self, delta):
+        self.drawing.end_index += delta
+
+
+    @database_sync_to_async
+    def redo(self, data, *args):
+        segments = self.drawing.segment_set.all()
+        last_index = len(segments) - 1
+        if self.drawing.end_index < last_index:
+            self.drawing.end_index += 1
+            self.drawing.save()
+            self.drawing.board.save()
+            return True
+        return False
+
+
+    @database_sync_to_async
     def clear(self):
         self.drawing.end_index += 1
         self.drawing.save()
@@ -187,34 +249,22 @@ class DrawConsumer(AsyncWebsocketConsumer):
         segment.save()
 
 
-    def undo(self, data, *args):
-        if self.drawing.end_index > -1:
-            self.drawing.end_index -= 1
-            self.drawing.save()
-            self.drawing.board.save()
-            return True
-        return False
-
-
-    def redo(self, data, *args):
-        last_index = len(self.drawing.segment_set.all()) - 1
-        if self.drawing.end_index < last_index:
-            self.drawing.end_index += 1
-            self.drawing.save()
-            self.drawing.board.save()
-            return True
-        return False
-
-
+    @database_sync_to_async
     def save(self, data):
-        i, user, _ = get_channel_user(self)
+        print('save', 'end_index' in data)
+        '''Save drawing data to the database.'''
+        i, user, _ = ut.get_channel_user(self)
         if len(user['connection_ids']) > 1:
-            self.drawing, created = Drawing.objects.get_or_create(artist=self.artist, board=self.board)
+            self.drawing, created = Drawing.objects.get_or_create(
+                artist=self.artist, board=self.board
+            )
         max_thickness = 150
         self.drawing.end_index += 1
         self.drawing.save()
         self.drawing.board.save()
-        self.drawing.segment_set.filter(index__gte=self.drawing.end_index).delete()
+        self.drawing.segment_set.filter(
+            index__gte=self.drawing.end_index
+        ).delete()
         thickness = int(data['stroke_width'])
         thickness = max_thickness if thickness > max_thickness else thickness
         thickness = 1 if thickness < 0 else thickness
@@ -230,20 +280,27 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def add_user(self):
+        '''Add newly connected user's data.
+
+        Add new user to channel layer and notify the frontend.
+        If user is already connected then add a new connection id.
+        If the user has a new nickname then update the channel layer and notify
+        the frontend.
+        '''
         self.channel_layer.connection_ids.append(self.connection_id)
-        i, user, user_list = get_channel_user(self)
+        i, user, user_list = ut.get_channel_user(self)
         channel_data = {}
         if user:
             if user['nickname'] != self.nickname:
                 channel_data = {
-                    'note': 'update',
+                    'action': 'update',
                     'hash': self.hash,
                     'nickname': self.nickname,
                     'old_nickname': user['nickname'],
-                    'type': 'send_data_no_type'
+                    'type': 'clean_and_send_data'
                 }
-                user_list[i]['nickname'] = self.nickname
-            user_list[i]['connection_ids'].append(self.connection_id)
+                user['nickname'] = self.nickname
+            user['connection_ids'].append(self.connection_id)
         else:
             user_data = {
                 'nickname': self.nickname,
@@ -255,10 +312,10 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 k:user_data[k] for k in user_data if k not in ['user_id', 'connection_ids']
             }
             channel_data.update({
-                'note': 'connected',
+                'action': 'connected',
                 'connection_id': self.connection_id,
                 'hash': self.hash,
-                'type': 'send_data_no_type'
+                'type': 'clean_and_send_data'
             })
         if channel_data:
             await self.channel_layer.group_send(
@@ -268,8 +325,13 @@ class DrawConsumer(AsyncWebsocketConsumer):
 
 
     async def remove_user(self):
+        '''Remove disconnected user's data.
+
+        Remove user from channel layer and notify the frontend.
+        If user has multiple connections then only remove connection_id.
+        '''
         self.channel_layer.connection_ids.remove(self.connection_id)
-        i, user, user_list = get_channel_user(self)
+        i, user, user_list = ut.get_channel_user(self)
         if user:
             if self.connection_id in user['connection_ids']:
                 user['connection_ids'].remove(self.connection_id)
@@ -280,15 +342,9 @@ class DrawConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
-                        'type': 'send_data_no_type',
-                        'note': 'disconnected',
+                        'type': 'clean_and_send_data',
+                        'action': 'disconnected',
                         'nickname': self.nickname,
                         'hash': self.hash
                     }
                 )
-
-
-def get_channel_user(consumer):
-    user_list = consumer.channel_layer.user_list[consumer.room_name]
-    i, user = next(((i, u) for i, u in enumerate(user_list) if u['user_id'] == consumer.user_id), (None, None))
-    return i, user, user_list

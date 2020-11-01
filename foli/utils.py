@@ -2,6 +2,8 @@ import os
 import random
 import string
 
+from decouple import config
+
 
 DIR = os.path.realpath(os.path.dirname(__file__))
 with open(os.path.join(DIR, 'words/adjectives/2syllableadjectives.txt')) as infile:
@@ -14,6 +16,14 @@ WORDS = {
     'adj': ADJECTIVES,
     'noun': NOUNS
 }
+
+
+def env(var_name):
+    try:
+        var = os.environ[var_name]
+    except KeyError:
+        var = config(var_name)
+    return var
 
 
 def random_string(string_length=20):

@@ -3,38 +3,29 @@
 //----------------------------------------------------------------------------------------- >
 
 
-var _stroke_arr = [];
-var _stroke = [];
-var _stroke_chunk = [];
+let _stroke_arr = [];
+let _stroke = [];
+let _stroke_chunk = [];
 
-var _zoom_ratio = 1;
+let _zoom_ratio = 1;
 
 // mouse coordinates
-var _x = -1;
-var _y = -1;
+let _x = -1;
+let _y = -1;
 
 // grab coordinates when moving the drawing board
-var _x_grab = -1;
-var _y_grab = -1;
+let _x_grab = -1;
+let _y_grab = -1;
 
 // difference between current mouse coordinates and grab coordinates
-var _x_diff = 0;
-var _y_diff = 0;
+let _x_diff = 0;
+let _y_diff = 0;
 
 // scroll position
-var _x_offset = Math.round(-2048 + (window.innerWidth / 2));
-var _y_offset = Math.round(-2048 + (window.innerHeight / 2));
+let _x_offset = Math.round(-2048 + (window.innerWidth / 2));
+let _y_offset = Math.round(-2048 + (window.innerHeight / 2));
 
-var _mode = null;
-
-/*
-function center_board() {
-  _board_wrapper.style.marginLeft = Math.round(-((4096 / 2) * _zoom_ratio) + (window.innerWidth / 2)) + 'px';
-  let margin_y = Math.round(-((4096 / 2) * _zoom_ratio) + (window.innerHeight / 2));
-  _board_wrapper.style.marginTop = margin_y + 'px';
-  _side_bar.style.marginTop = -margin_y + 'px';
-}
-*/
+let _mode = null;
 
 function center_board() {
   _x_offset = Math.round(-((4096 / 2) * _zoom_ratio) + (window.innerWidth / 2)) / _zoom_ratio;
@@ -44,7 +35,6 @@ function center_board() {
 
 function set_mode() {
   let mode = _board_options.value;
-  console.log('mode', mode);
   if (_mode !== mode) {
     _mode = mode;
     if (mode === 'draw') {
@@ -60,12 +50,12 @@ function set_mode() {
   }
 }
 
-var _clicked = false;
+let _clicked = false;
 
 _board_wrapper.onmousedown = click;
 _board_wrapper.ontouchstart = click;
 
-var _temp_move_enabled = false;
+let _temp_move_enabled = false;
 
 function click(event) {
   event.preventDefault();
@@ -84,7 +74,7 @@ function click(event) {
     */
   }
 
-  _drawing.thickness = _brush_size_select.value;
+  _drawing.thickness = parseInt(_brush_size_select.value);
   _clicked = true;
   if (_move_enabled || _temp_move_enabled) {
     _board_wrapper.style.cursor = 'grabbing';
@@ -239,7 +229,7 @@ _btn_undo.onclick = function() {
     segments = process_drawing_data(_drawing, draw=true);
     _ctx.strokeStyle = _drawing.color;
     _btn_redo.disabled = false;
-    update__btn_clear_status(segments, end_index=_drawing.end_index);
+    update_btn_clear_status(segments, end_index=_drawing.end_index);
   }
   if (_drawing.end_index <= -1) this.disabled = true;
   send_draw_data(segments, 'undo');
@@ -256,7 +246,7 @@ _btn_redo.onclick = function() {
     _drawing.end_index += 1;
     segments = process_drawing_data(_drawing, draw=true);
     _btn_undo.disabled = false;
-    update__btn_clear_status(segments);
+    update_btn_clear_status(segments);
   }
   send_draw_data(segments, 'redo');
 }

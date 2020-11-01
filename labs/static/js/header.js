@@ -1,15 +1,9 @@
-var main = document.getElementById('main');
-var logo = document.getElementById('logo');
-var logo2 = document.getElementById('logo2');
-var debug = document.getElementById('debug');
-var box_header = document.getElementById('box-header');
+let main = document.getElementById('main');
+let logo = document.getElementById('logo');
+let logo2 = document.getElementById('logo2');
+let debug = document.getElementById('debug');
+let box_header = document.getElementById('box-header');
 
-/*
-for (let letter of letters) {
-  let text = `<text x="${letter.x}" y="${letter.y}" class="letter white">${letter.letter}</text>`;
-  box_header.innerHTML += text;
-}
-*/
 
 for (let [word, [x, y]] of words) {
   let factor = box_header.getBoundingClientRect().width / 400;
@@ -65,7 +59,7 @@ circles.forEach(circle => {
 const logo_x_move_mult = 50;
 const logo_y_move_mult = 30;
 
-var logo_left_centered, logo_top_centered,
+let logo_left_centered, logo_top_centered,
     logo_y_range, logo_x_init, logo_y_init,
     win_x_half, win_y_half;
 
@@ -101,16 +95,14 @@ window.onresize = update_values;
 const letter_x_move_mult = 3;
 const letter_y_move_mult = 2;
 
-var letter_x_move = 0.5;
-var letter_y_move = 0.5;
+let letter_x_move = 0.5;
+let letter_y_move = 0.5;
 
 const timer_mult_base = 10;
-var timer_mult = 29;
+let timer_mult = 29;
 
 
 document.onmousemove = function(event) {
-  //debug.innerHTML = `(${event.clientX}, ${event.clientY})`;
-
   let [x_factor, x_move] = calc_move(event.clientX, 'innerWidth', win_x_half, logo_x_move_mult);
   let [y_factor, y_move] = calc_move(event.clientY, 'innerHeight', win_y_half, logo_y_move_mult);
 
@@ -125,7 +117,6 @@ document.onmousemove = function(event) {
   let letter_factor = Math.abs(x_factor) > Math.abs(letter_y_factor) ? x_factor : letter_y_factor;
   timer_mult = Math.ceil(timer_mult_base - (Math.abs(letter_factor) * timer_mult_base) + (timer_mult_base * 3));
   if (timer_mult === 0) timer_mult = 1;
-  //console.log(letter_y_factor);
 
   letter_x_move = Math.round(letter_factor * letter_x_move_mult);
   letter_y_move = Math.round(letter_factor * letter_y_move_mult);
@@ -140,14 +131,13 @@ function calc_move(event_client, offset_position, loc_comp, mult, log=false) {
   let offset = window[offset_position] - loc_comp;
   let factor = diff / offset;
   let move = Math.round(factor * mult) * -1;
-  if (log) console.log(move);
   return [factor, move];
 }
 
 
-var frame_count = 1;
+let frame_count = 1;
 
-var jiggle_interval = setInterval(jiggle, 5);
+let jiggle_interval = setInterval(jiggle, 5);
 
 function jiggle() {
   if (frame_count >= timer_mult) {
